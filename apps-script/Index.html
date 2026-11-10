@@ -204,6 +204,10 @@ input[type=date].in,input[type=time].in{min-width:0;-webkit-appearance:none;appe
   padding:12px 18px;border-radius:16px;font-weight:700;box-shadow:var(--shadow);max-width:calc(100% - 32px);display:none;text-align:center}
 #caricamento{position:fixed;inset:0;z-index:90;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-weight:800;font-size:18px}
 #caricamento .casa{font-size:58px;animation:salta 1s ease-in-out infinite}
+#caricamento{padding:16px;text-align:center;overflow:auto}
+#caricamento .aiuto{font-weight:600;font-size:15px;text-align:left;max-width:560px;background:var(--card);border-radius:18px;padding:14px 16px;box-shadow:var(--shadow);line-height:1.45}
+#caricamento .aiuto ol{padding-left:20px;margin:8px 0 0}
+#caricamento .aiuto li{margin-bottom:6px}
 @keyframes salta{50%{transform:translateY(-10px)}}
 .mini{font-size:13px;color:var(--muted)}
 .sep{height:1px;background:var(--line);margin:16px 0}
@@ -2002,7 +2006,23 @@ const PROVA = (() => {
   };
 })();
 
-carica().catch(e => { $('#caricamento').innerHTML = '<div class="casa">😵</div>Non riesco ad aprire casa.<div class="mini">' + esc(e && e.message || e) + '</div><button class="btn" onclick="location.reload()">Riprova</button>'; });
+// Consigli quando i dati non arrivano. Il caso tipico: piu' account Google nello stesso Chrome
+// (Google manda le richieste all'account "principale" del browser, che non e' quello dell'app).
+const AIUTO_ACCOUNT = `<div class="aiuto">
+  <b>Hai più account Google aperti in questo Chrome?</b> (per esempio quello personale e quello di lavoro)
+  Google si confonde e non mi manda i dati. Soluzioni:
+  <ol>
+    <li><b>Consigliata:</b> crea un profilo Chrome solo per l'account personale: clic sul cerchio con la tua iniziale in alto a destra → <b>Aggiungi</b> → entra con l'account personale, apri lì l'app e installala.</li>
+    <li>Oppure esci dagli altri account Google in questo Chrome.</li>
+    <li>Per una prova veloce: apri l'app in una <b>finestra di navigazione in incognito</b> (Ctrl+Maiusc+N).</li>
+  </ol></div>`;
+function problemaCaricamento(titolo, dettaglio) {
+  $('#caricamento').innerHTML = `<div class="casa">😵</div>${titolo}${dettaglio ? `<div class="mini">${esc(dettaglio)}</div>` : ''}${AIUTO_ACCOUNT}<button class="btn" onclick="location.reload()">Riprova</button>`;
+}
+const attesaDati = setTimeout(() => {
+  if ($('#caricamento').style.display !== 'none') problemaCaricamento('Ci sto mettendo troppo ad aprire casa…', 'Google non mi ha ancora mandato i tuoi dati.');
+}, 20000);
+carica().then(() => clearTimeout(attesaDati)).catch(e => { clearTimeout(attesaDati); problemaCaricamento('Non riesco ad aprire casa.', e && e.message || String(e)); });
 </script>
 </body>
 </html>
