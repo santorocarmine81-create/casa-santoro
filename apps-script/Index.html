@@ -4,7 +4,7 @@
 <base target="_top">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Casa Santoro</title>
+<title>Casa Santoro/Longobardi</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -31,6 +31,8 @@ header{position:sticky;top:0;z-index:20;background:var(--bg);padding:14px 0 10px
 header .wrap{display:flex;align-items:center;gap:10px}
 header h1{font-size:22px;font-weight:800;margin:0;flex:1;letter-spacing:-.3px}
 header h1 span{color:var(--primary)}
+header h1 em{font-style:normal;color:var(--accent)}
+@media (max-width:480px){header h1{font-size:17px;letter-spacing:-.4px}header .icon-btn{width:38px;height:38px;font-size:17px}}
 .icon-btn{width:42px;height:42px;border-radius:14px;border:0;background:var(--card);box-shadow:var(--shadow);cursor:pointer;font-size:19px;display:grid;place-items:center}
 .demo{background:var(--warn-soft);color:var(--ink);border-radius:14px;padding:10px 14px;font-size:14px;margin:4px 0 12px}
 
@@ -61,6 +63,39 @@ h2{font-size:19px;margin:22px 0 10px;font-weight:800}
 .b-teal{background:var(--accent-soft);color:var(--accent)}
 .empty{text-align:center;color:var(--muted);padding:18px 8px}
 .empty b{display:block;font-size:34px;margin-bottom:6px}
+.spadd{display:flex;gap:8px;align-items:center}
+.spadd .in{flex:1;min-width:0}
+.spadd .qta{flex:0 0 96px}
+.sp-rep{font-weight:800;font-size:16px;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.sp-row{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);cursor:pointer;user-select:none}
+.sp-row:last-child{border-bottom:0}
+.sp-row .txt{flex:1;min-width:0}
+.sp-row .t{font-weight:700;font-size:17px}
+.sp-row .s{font-size:13px;color:var(--muted)}
+.check{width:28px;height:28px;border-radius:50%;border:2.5px solid var(--accent);display:grid;place-items:center;flex:none;font-weight:900;color:#fff}
+.sp-row.fatto .check{background:var(--accent)}
+.sp-row.fatto .t{text-decoration:line-through;color:var(--muted)}
+.qtab{background:var(--warn-soft);color:#b45309;border-radius:8px;padding:1px 7px;font-size:13px;font-weight:800;margin-left:4px}
+.presi{opacity:.85}
+.barra{height:9px;border-radius:9px;background:var(--line);overflow:hidden;margin-top:5px}
+.barra i{display:block;height:100%;border-radius:9px}
+.prog{cursor:pointer;margin:0}
+.prog.chiuso{opacity:.7}
+.prog-top{display:flex;gap:12px;align-items:center}
+.prog-top .t{font-weight:800;font-size:17px}
+.emerg{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:8px}
+.emerg a{display:flex;flex-direction:column;align-items:center;background:var(--danger-soft);color:var(--danger);border-radius:14px;padding:10px 6px;text-decoration:none}
+.emerg a b{font-size:18px}
+.emerg a span{font-size:12px;font-weight:700}
+.row.num{align-items:flex-start}
+.azn{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.azn a{text-decoration:none}
+.share{background:var(--accent-soft);border-radius:14px;padding:12px;margin-top:8px;display:flex;flex-direction:column;gap:8px;align-items:flex-start;font-size:15px}
+.tiles{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:14px 0}
+@media (max-width:760px){.tiles{grid-template-columns:repeat(3,1fr)}}
+.tiles button{border:0;background:var(--card);box-shadow:var(--shadow);border-radius:18px;padding:12px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-weight:800;font-size:14px}
+.tiles button b{font-size:26px}
+.tiles button small{font-weight:600;color:var(--muted);font-size:12px;text-align:center}
 .quick{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
 .btn{border:0;border-radius:14px;padding:11px 16px;font-weight:800;cursor:pointer;background:var(--primary);color:#fff}
 .btn.sec{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
@@ -76,7 +111,8 @@ h2{font-size:19px;margin:22px 0 10px;font-weight:800}
 
 /* Calendario */
 .calhead{display:flex;align-items:center;gap:8px;margin:8px 0 10px}
-.calhead h2{flex:1;margin:0;text-transform:capitalize}
+.calhead h2{flex:1;margin:0}
+.calhead h2.mese{text-transform:capitalize}
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
 .cal .dow{text-align:center;font-size:12px;font-weight:800;color:var(--muted);padding:4px 0}
 .day{background:var(--card);border-radius:12px;min-height:62px;padding:5px;cursor:pointer;border:2px solid transparent;overflow:hidden}
@@ -172,7 +208,8 @@ input[type=date].in,input[type=time].in{min-width:0;-webkit-appearance:none;appe
 <div id="caricamento"><div class="casa">🏠</div>Sto aprendo casa…</div>
 
 <header><div class="wrap">
-  <h1>🏠 Casa <span>Santoro</span></h1>
+  <h1>🏠 Casa <span>Santoro</span><em>/Longobardi</em></h1>
+  <button class="icon-btn" onclick="vai('fam')" title="Famiglia">👨‍👩‍👦</button>
   <button class="icon-btn" onclick="ricarica()" title="Aggiorna">🔄</button>
   <button class="icon-btn" onclick="apriImpostazioni()" title="Impostazioni">⚙️</button>
 </div></header>
@@ -184,7 +221,8 @@ input[type=date].in,input[type=time].in{min-width:0;-webkit-appearance:none;appe
   <button data-v="home" onclick="vai('home')"><b>🏡</b>Casa</button>
   <button data-v="cal" onclick="vai('cal')"><b>📅</b>Calendario</button>
   <button data-v="doc" onclick="vai('doc')"><b>📂</b>Documenti</button>
-  <button data-v="fam" onclick="vai('fam')"><b>👨‍👩‍👦</b>Famiglia</button>
+  <button data-v="spesa" onclick="vai('spesa')"><b>🛒</b>Spesa</button>
+  <button data-v="altro" onclick="menuAltro()"><b>☰</b>Altro</button>
 </nav>
 <div id="toast"></div>
 <input type="file" id="inFoto" accept="image/*" capture="environment" hidden>
@@ -237,7 +275,9 @@ const GIORNI = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
    Stato
    ========================================================= */
 const S = {
-  persone: [], documenti: [], impegni: [], ignorati: [], imp: {}, link: {}, email: '',
+  persone: [], documenti: [], impegni: [], spesa: [], progetti: [], numeri: [], ignorati: [], imp: {}, link: {},
+  io: { email: '', nome: '', proprietario: true, emailAttiva: false },
+  filtroProgetti: '', cercaNumeri: '',
   vista: 'home', mese: null, giornoSel: null, google: {}, googleCarico: {},
   filtroPersona: '', cerca: '', scan: null, pcFiles: {},
   calModo: (() => { try { return localStorage.getItem('casaSantoroModo') || 'mese'; } catch (e) { return 'mese'; } })(),
@@ -293,18 +333,26 @@ function statoScadenza(d) {
 function carica() {
   return api('getTutto').then(r => {
     S.persone = r.persone; S.documenti = r.documenti; S.impegni = r.impegni; S.ignorati = r.ignorati || [];
-    S.imp = r.impostazioni; S.link = r.link || {}; S.email = r.email || '';
+    S.spesa = r.spesa || []; S.progetti = r.progetti || []; S.numeri = r.numeri || [];
+    S.imp = r.impostazioni; S.link = r.link || {}; S.io = r.io || S.io;
     $('#caricamento').style.display = 'none';
     render();
   });
 }
 function ricarica() { S.google = {}; S.googleCarico = {}; toast('Aggiorno… 🔄', 1200); carica().catch(errore); }
 
-function vai(v) { S.vista = v; window.scrollTo(0, 0); render(); }
+function vai(v) {
+  chiudiFinestra();
+  S.vista = v; window.scrollTo(0, 0); render();
+  // la spesa la ricarico sempre: magari l'ha appena cambiata qualcun altro
+  if (v === 'spesa') aggiornaSpesa(true);
+}
 
+const SCHEDA_DI = { cerca: 'doc', prog: 'altro', num: 'altro', fam: 'altro' };
 function render() {
-  document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === (S.vista === 'cerca' ? 'doc' : S.vista)));
-  $('#fab').style.display = S.vista === 'cerca' ? 'none' : 'block';
+  const scheda = SCHEDA_DI[S.vista] || S.vista;
+  document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === scheda));
+  $('#fab').style.display = S.vista === 'cerca' || S.vista === 'spesa' ? 'none' : 'block';
   const m = $('#main');
   let h = DEMO ? '<div class="demo">🧪 <b>Modalità prova</b>: i dati restano solo in questo browser. Quando l\'app sarà su Google, tutto andrà nel tuo Drive e nel calendario.</div>' : '';
   if (S.vista === 'home') h += vistaHome();
@@ -312,6 +360,9 @@ function render() {
   if (S.vista === 'doc') h += vistaDocumenti();
   if (S.vista === 'fam') h += vistaFamiglia();
   if (S.vista === 'cerca') h += vistaCerca();
+  if (S.vista === 'spesa') h += vistaSpesa();
+  if (S.vista === 'prog') h += vistaProgetti();
+  if (S.vista === 'num') h += vistaNumeri();
   m.innerHTML = h;
   if (S.vista === "cal" && S.calModo !== "elenco") caricaGoogleMese();
 }
@@ -381,8 +432,8 @@ function rigaCosa(c, data) {
 function vistaHome() {
   const ora = new Date().getHours();
   const saluto = ora < 6 ? 'Notte fonda' : ora < 13 ? 'Buongiorno' : ora < 18 ? 'Buon pomeriggio' : 'Buonasera';
-  const nome = S.imp.nome || 'Carmine';
-  let h = `<div class="hello">${saluto}, ${esc(nome)}! 👋</div><p class="sub">Oggi è ${fData(oggi(), true)}. Vediamo un po' che c'è in giro.</p>`;
+  const nome = S.io.nome;
+  let h = `<div class="hello">${saluto}${nome ? ', ' + esc(nome) : ''}! 👋</div><p class="sub">Oggi è ${fData(oggi(), true)}. Vediamo un po' che c'è in giro.</p>`;
 
   if (!S.persone.length) {
     return h + `<div class="card"><div class="empty"><b>👨‍👩‍👦</b>Per cominciare aggiungi te stesso e la tua famiglia.<br>Poi ci mettiamo i documenti!</div>
@@ -392,10 +443,16 @@ function vistaHome() {
   const scaduti = S.documenti.filter(d => d.scadenza && giorniA(d.scadenza) < 0).sort((a, b) => a.scadenza < b.scadenza ? -1 : 1);
   const presto = S.documenti.filter(d => d.scadenza && giorniA(d.scadenza) >= 0 && giorniA(d.scadenza) <= Math.max(preavvisoDi(d), 7)).sort((a, b) => a.scadenza < b.scadenza ? -1 : 1);
 
-  h += `<div class="quick">
-    <button class="btn" onclick="apriDocumento()">📄 Nuovo documento</button>
-    <button class="btn teal" onclick="apriImpegno()">📌 Nuovo impegno</button>
-    <button class="btn sec" onclick="vai('cerca')">🔍 Cerca in una cartella</button>
+  const daPrendere = S.spesa.filter(x => x.preso !== 'si').length;
+  const inCorso = S.progetti.filter(p => p.stato === 'inCorso').length;
+  const scadNum = scaduti.length + presto.length;
+  h += `<div class="tiles">
+    <button onclick="vai('doc')"><b>📂</b>Documenti<small>${scadNum ? scadNum + ' da guardare' : S.documenti.length + ' in archivio'}</small></button>
+    <button onclick="vai('cal')"><b>📅</b>Calendario<small>${S.impegni.length} impegni</small></button>
+    <button onclick="vai('spesa')"><b>🛒</b>Spesa<small>${daPrendere ? daPrendere + ' da prendere' : 'Lista vuota'}</small></button>
+    <button onclick="vai('prog')"><b>🎯</b>Progetti<small>${inCorso ? inCorso + ' in corso' : S.progetti.length + ' idee'}</small></button>
+    <button onclick="vai('num')"><b>📞</b>Numeri utili<small>${S.numeri.length} contatti</small></button>
+    <button onclick="vai('fam')"><b>👨‍👩‍👦</b>Famiglia<small>${S.persone.length} persone</small></button>
   </div>`;
 
   h += '<div class="grid2">';
@@ -555,7 +612,7 @@ function vistaCalendario() {
   const celle = celleMese(), meseN = S.mese.getMonth(), oggiS = oggi();
   let h = interruttoreModo() + `<div class="calhead">
     <button class="icon-btn" onclick="spostaMese(-1)">‹</button>
-    <h2>${MESI[meseN]} ${S.mese.getFullYear()}</h2>
+    <h2 class="mese">${MESI[meseN]} ${S.mese.getFullYear()}</h2>
     <button class="btn sec small" onclick="meseOggi()">Oggi</button>
     <button class="icon-btn" onclick="spostaMese(1)">›</button>
   </div>
@@ -863,10 +920,11 @@ function vistaFamiglia() {
       <div class="av" style="background:${p.colore || '#ff6b57'}33">${esc(p.emoji || '🙂')}</div>
       <div class="txt"><div class="t">${esc(p.nome)} ${esc(p.cognome || '')}</div>
       <div class="s">${esc(p.relazione || '')}${p.nascita ? ' · 🎂 ' + fData(p.nascita) : ''}</div>
-      <div class="s">📄 ${docs.length} document${docs.length === 1 ? 'o' : 'i'}${probl ? ` · <span class="badge b-orange">${probl} da guardare</span>` : ''}</div></div>
+      <div class="s">📄 ${docs.length} document${docs.length === 1 ? 'o' : 'i'}${probl ? ` · <span class="badge b-orange">${probl} da guardare</span>` : ''}${p.accesso === 'si' ? ' · <span class="badge b-teal">🤝 Usa l\'app</span>' : ''}</div></div>
     </div>`;
   }).join('') + '</div>';
   h += `<div class="quick"><button class="btn" onclick="apriPersona()">➕ Aggiungi qualcuno</button></div>`;
+  if (S.io.proprietario) h += `<div class="card"><b>🤝 Usare l'app in due (o più)</b><p class="mini" style="margin-bottom:0">Apri la scheda di tua moglie (o di chi vuoi), scrivi la sua email Google e premi “Condividi l'app”. Vedrete e modificherete le stesse cose: documenti, calendario, spesa, progetti e numeri. Ognuno entra con il suo account.</p></div>`;
   return h;
 }
 function apriPersona(id) {
@@ -885,6 +943,9 @@ function apriPersona(id) {
     <label class="f">Codice fiscale</label>
     <input class="in" id="pCF" value="${esc(p.codiceFiscale)}" placeholder="Facoltativo" style="text-transform:uppercase">
     <p class="mini">🔍 Nomi, soprannomi e codice fiscale mi servono per riconoscere i suoi documenti quando cerco in una cartella.</p>
+    <label class="f">Email Google (per usare l'app insieme a te)</label>
+    <input class="in" id="pEmail" type="email" value="${esc(p.email)}" placeholder="Es. nome@gmail.com" ${p.accesso === 'si' ? 'readonly' : ''}>
+    ${id ? boxCondivisione(p) : '<p class="mini">🤝 Dopo aver salvato potrai condividere l\'app con questa persona.</p>'}
     <label class="f">Faccina</label>
     <div class="pick" id="pEmoji">${EMOJI.map(e => `<button type="button" class="${e === p.emoji ? 'on' : ''}" data-id="${e}" onclick="scegliUno(this)">${e}</button>`).join('')}</div>
     <label class="f">Colore nel calendario</label>
@@ -908,12 +969,63 @@ function salvaPersona(id) {
   p.emoji = personaScelta('pEmoji') || '🙂';
   p.colore = personaScelta('pColore') || COLORI[0];
   p.note = $('#pNote').value.trim();
+  p.email = $('#pEmail').value.trim().toLowerCase();
   const btn = $('#pSalva'); btn.disabled = true; btn.textContent = 'Un attimo… ⏳';
-  api('salva', 'Persone', p).then(r => {
+  return api('salva', 'Persone', p).then(r => {
     const i = S.persone.findIndex(x => x.id === r.obj.id);
     if (i >= 0) S.persone[i] = r.obj; else S.persone.push(r.obj);
-    chiudiFinestra(); render(); toast(i >= 0 ? 'Aggiornato ✅' : 'Benvenuto/a ' + r.obj.nome + '! 🎉');
+    chiudiFinestra(); render();
+    toast(r.avviso || (i >= 0 ? 'Aggiornato ✅' : 'Benvenuto/a ' + r.obj.nome + '! 🎉'), r.avviso ? 6000 : 2800);
+    return r.obj;
   }).catch(e => { btn.disabled = false; btn.textContent = '💾 Salva'; errore(e); });
+}
+
+/* ---------- Condividere l'app con qualcuno di famiglia ---------- */
+function boxCondivisione(p) {
+  if (p.accesso === 'si') {
+    return `<div class="share on">✅ <b>${esc(p.nome)}</b> usa l'app con <b>${esc(p.email)}</b>: vede e modifica tutto insieme a te.
+      ${S.io.proprietario ? `<button class="btn ghost small" onclick="togliAccesso('${p.id}')">Togli l'accesso</button>` : ''}</div>`;
+  }
+  if (!S.io.proprietario) return '';
+  return `<div class="share">🤝 Vuoi usare l'app insieme a ${esc(p.nome)}? Scrivi la sua email Google qui sopra e premi:
+    <button class="btn teal small" id="pCondividi" onclick="condividi('${p.id}')">🤝 Condividi l'app</button>
+    <span class="mini">Le do accesso ai dati, alla cartella dei documenti e al calendario di casa. Nient'altro del tuo Drive.</span></div>`;
+}
+async function condividi(id) {
+  const email = $('#pEmail').value.trim();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return toast('Scrivi prima una email valida 🙂');
+  const btn = $('#pCondividi'); btn.disabled = true; btn.textContent = 'Condivido… ⏳';
+  try {
+    const salvata = await salvaPersona(id);  // salvo prima l'email
+    if (!salvata) return;
+    const r = await api('condividiCon', id);
+    const i = S.persone.findIndex(x => x.id === id); S.persone[i] = r.obj;
+    render();
+    apriFinestra(`<h3>🎉 Fatto!<button class="icon-btn x" onclick="chiudiFinestra()">✕</button></h3>
+      <p>Ora <b>${esc(r.obj.nome)}</b> può usare l'app. Manda questo messaggio:</p>
+      <div class="card" style="font-size:15px" id="msgInvito">Ciao! Ti ho invitato in “Casa Santoro/Longobardi”, l'app di famiglia per documenti, scadenze, spesa e impegni 🏠
+Aprila da Chrome sul telefono: ${esc(INDIRIZZO_APP)}
+Entra con il tuo account ${esc(r.obj.email)}, premi "Consenti" la prima volta e poi dal menu ⋮ scegli "Installa app".</div>
+      ${r.avvisi && r.avvisi.length ? `<p class="mini">⚠️ ${r.avvisi.map(esc).join('<br>')}</p>` : ''}
+      <div class="azioni"><button class="btn teal" onclick="condividiTesto($('#msgInvito').innerText)">📤 Manda il messaggio</button></div>`);
+  } catch (e) { errore(e); }
+}
+function togliAccesso(id) {
+  chiedi('Tolgo l\'accesso all\'app?', 'Non potrà più aprire l\'app né vedere i dati, i documenti e il calendario di casa. I dati restano tutti.').then(si => {
+    if (!si) return;
+    api('togliCondivisione', id).then(r => {
+      const i = S.persone.findIndex(x => x.id === id); S.persone[i] = r.obj;
+      chiudiFinestra(); render(); toast('Accesso tolto 👋');
+    }).catch(errore);
+  });
+}
+const INDIRIZZO_APP = 'https://santorocarmine81-create.github.io/casa-santoro/';
+async function condividiTesto(testo) {
+  try {
+    if (navigator.share) { await navigator.share({ text: testo }); return; }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(testo); toast('Copiato! Ora incollalo su WhatsApp 📋'); }
+  catch (e) { toast('Non riesco a copiarlo: selezionalo e copialo a mano'); }
 }
 function eliminaPersona(id) {
   const n = S.documenti.filter(d => d.personaId === id).length;
@@ -991,7 +1103,7 @@ function vistaCerca() {
   let h = `<div class="calhead"><button class="icon-btn" onclick="vai('doc')">‹</button><h2>🔍 Cerca documenti in una cartella</h2></div>
   <div class="card">
     <p style="margin-top:0">Dimmi dove guardare: leggo i nomi dei file e delle sottocartelle e ti dico quali sembrano di qualcuno della famiglia.</p>
-    <p class="mini">🔒 Le tue cartelle le guardo e basta: non sposto, non rinomino e non cancello niente. Se vuoi tenere un documento nell'app, ne faccio una <b>copia</b> nella cartella “Casa Santoro - Documenti”; l'originale resta dov'è, intatto.</p>
+    <p class="mini">🔒 Le tue cartelle le guardo e basta: non sposto, non rinomino e non cancello niente. Se vuoi tenere un documento nell'app, ne faccio una <b>copia</b> nella cartella “Casa Santoro-Longobardi - Documenti”; l'originale resta dov'è, intatto.</p>
     <label class="f">📁 Cartella di Google Drive (incolla il link)</label>
     <input class="in" id="cLink" placeholder="https://drive.google.com/drive/folders/…" value="${esc(S.imp.cartellaScansione || '')}">
     <div class="azioni" style="margin-top:10px">
@@ -1093,27 +1205,369 @@ function ignoraDaScan(i) {
 function ripristina() { S.ignorati = []; render(); api('ripristinaIgnorati').catch(errore); }
 
 /* =========================================================
+   Lista della spesa (condivisa)
+   ========================================================= */
+// Ordine dei reparti come si gira in un supermercato
+const REPARTI = [
+  ['Frutta e verdura', '🥦'], ['Pane e dolci', '🥖'], ['Carne e pesce', '🥩'], ['Salumi', '🥓'], ['Latticini e uova', '🧀'],
+  ['Dispensa', '🍝'], ['Surgelati', '🧊'], ['Bevande', '🥤'], ['Casa e pulizia', '🧽'], ['Igiene e cura', '🧴'],
+  ['Bimbi', '🧸'], ['Animali', '🐾'], ['Farmacia', '💊'], ['Altro', '🛍️']
+];
+// Per indovinare il reparto dal nome (l'ordine conta: prima i casi particolari)
+const INDIZI_REPARTO = [
+  [/pannolin|salviettin|omogeneizz|pappa|latte in polvere|biberon/, 'Bimbi'],
+  [/tachipirin|farmac|cerott|medicin|vitamin|termometr|aspirin|moment\b|\boki\b|sciroppo/, 'Farmacia'],
+  [/detersiv|ammorbident|candeggin|sgrassat|spugn|sacchett|carta igienica|carta cucina|scottex|scop|stracc|pellicol|alluminio|lavastoviglie|lavatrice|sapone piatti|anticalcare|lampadin|pil[ae]\b/, 'Casa e pulizia'],
+  [/shampoo|bagnoschiuma|dentifric|spazzolin|deodorant|sapone|crema|assorbent|cotton|rasoi|schiuma|balsamo|fazzolett|struccant/, 'Igiene e cura'],
+  [/croccantin|scatolette|lettiera|\bcane\b|\bgatto\b/, 'Animali'],
+  [/surgel|gelat|bastoncin|piselli|minestrone|sofficin/, 'Surgelati'],
+  [/carne|pollo|manzo|maiale|salsicc|tacchin|vitello|pesce|salmone|merluzz|gamber|cozz|vongol|macinat|hamburger|bistecc|polpo|calamar|petto|cotolett|spigol|orata/, 'Carne e pesce'],
+  [/prosciutt|salame|mortadell|wurstel|bresaola|speck|pancett|salumi/, 'Salumi'],
+  [/latte|yogurt|burro|formagg|mozzarell|ricotta|parmigian|grana|uova|uovo|panna|stracchino|provola|scamorza|fior di latte/, 'Latticini e uova'],
+  [/mel[ae]\b|pere|banan|arance|limon|insalat|pomodor|patat|cipoll|zucchin|carot|frutta|verdur|aglio|peperon|melanzan|finocch|spinac|\buva\b|fragol|kiwi|lattuga|rucola|basilico|prezzemolo|friarielli|broccoli|cavol|funghi|sedano/, 'Frutta e verdura'],
+  [/pane|panin|grissin|crackers|fette biscottate|biscott|merendin|cornett|tort|dolc|cioccolat|nutella|marmellat|zucchero|farina|lievito|taralli|pizza/, 'Pane e dolci'],
+  [/acqua|vino|birra|succ|aranciata|coca|bibit|spumante|gassosa/, 'Bevande'],
+  [/pasta|spaghett|penne|riso|olio|aceto|\bsale\b|pelati|passata|legum|ceci|fagiol|lenticch|tonno|caff|\bthe\b|\bt[eè]\b|camomill|cereali|sugo|pesto|maionese|ketchup|spezie|origano|brodo|dado|olive|capperi/, 'Dispensa']
+];
+function indovinaReparto(nome) {
+  const t = norm(nome);
+  const r = INDIZI_REPARTO.find(x => x[0].test(t));
+  return r ? r[1] : 'Altro';
+}
+const repartoInfo = r => REPARTI.find(x => x[0] === r) || REPARTI[REPARTI.length - 1];
+S.spBozza = ''; S.spQta = '';
+
+function vistaSpesa() {
+  const daPrendere = S.spesa.filter(x => x.preso !== 'si');
+  const presi = S.spesa.filter(x => x.preso === 'si');
+  let h = `<div class="calhead"><h2>🛒 Lista della spesa</h2>
+    <button class="icon-btn" onclick="aggiornaSpesa()" title="Aggiorna">🔄</button></div>
+  <div class="card spadd">
+    <input class="in" id="spNome" placeholder="Cosa serve? (es. latte)" value="${esc(S.spBozza)}" oninput="S.spBozza=this.value" onkeydown="if(event.key==='Enter')aggiungiSpesa()" autocomplete="off">
+    <input class="in qta" id="spQta" placeholder="Quanto?" value="${esc(S.spQta)}" oninput="S.spQta=this.value" onkeydown="if(event.key==='Enter')aggiungiSpesa()" autocomplete="off">
+    <button class="btn" onclick="aggiungiSpesa()">➕</button>
+  </div>`;
+  if (!S.spesa.length) return h + `<div class="card"><div class="empty"><b>🎉</b>Lista vuota! Frigo pieno?<br>Scrivi qui sopra cosa serve: la vede subito anche il resto della famiglia.</div></div>`;
+  h += `<div class="quick" style="margin-top:0">
+    ${daPrendere.length ? `<button class="btn sec small" onclick="mandaSpesa()">📤 Manda la lista</button>` : ''}
+    ${presi.length ? `<button class="btn sec small" onclick="svuotaPresi()">🧹 Togli i presi (${presi.length})</button>` : ''}
+  </div>`;
+  if (!daPrendere.length) h += `<div class="card"><div class="empty"><b>✅</b>Preso tutto! Bravi 💪</div></div>`;
+  REPARTI.forEach(([nome, ico]) => {
+    const voci = daPrendere.filter(x => (repartoInfo(x.reparto)[0]) === nome);
+    if (!voci.length) return;
+    h += `<div class="card"><div class="sp-rep">${ico} ${esc(nome)} <span class="mini">${voci.length}</span></div>${voci.map(rigaSpesa).join('')}</div>`;
+  });
+  if (presi.length) h += `<div class="card presi"><div class="sp-rep">✅ Nel carrello <span class="mini">${presi.length}</span></div>${presi.map(rigaSpesa).join('')}</div>`;
+  return h;
+}
+function rigaSpesa(x) {
+  const preso = x.preso === 'si';
+  return `<div class="sp-row ${preso ? 'fatto' : ''}" onclick="spunta('${x.id}')">
+    <span class="check">${preso ? '✓' : ''}</span>
+    <div class="txt"><div class="t">${esc(x.nome)}${x.quantita ? ` <span class="qtab">${esc(x.quantita)}</span>` : ''}</div>
+      ${x.aggiuntoDa ? `<div class="s">da ${esc(x.aggiuntoDa)}</div>` : ''}</div>
+    <button class="btn ghost small" onclick="event.stopPropagation();apriVoceSpesa('${x.id}')" title="Modifica">✏️</button>
+  </div>`;
+}
+function aggiungiSpesa() {
+  const nome = (S.spBozza || '').trim();
+  if (!nome) { $('#spNome') && $('#spNome').focus(); return; }
+  const gia = S.spesa.find(x => x.preso !== 'si' && norm(x.nome) === norm(nome));
+  if (gia) { toast('“' + gia.nome + '” c\'è già in lista 😉'); return; }
+  const o = { nome: nome.charAt(0).toUpperCase() + nome.slice(1), quantita: (S.spQta || '').trim(), reparto: indovinaReparto(nome), preso: '', aggiuntoDa: S.io.nome || '' };
+  const tmp = Object.assign({ id: 'tmp' + Date.now() }, o);
+  S.spesa.push(tmp); S.spBozza = ''; S.spQta = '';
+  render(); const inp = $('#spNome'); if (inp) inp.focus();
+  api('salva', 'Spesa', o).then(r => {
+    const i = S.spesa.indexOf(tmp); if (i >= 0) S.spesa[i] = r.obj;
+  }).catch(e => { S.spesa = S.spesa.filter(x => x !== tmp); render(); errore(e); });
+}
+function spunta(id) {
+  const x = S.spesa.find(v => v.id === id); if (!x || id.startsWith('tmp')) return;
+  x.preso = x.preso === 'si' ? '' : 'si';
+  render();
+  api('salva', 'Spesa', x).catch(e => { x.preso = x.preso === 'si' ? '' : 'si'; render(); errore(e); });
+}
+function aggiornaSpesa(silenzioso) {
+  if (!silenzioso) toast('Aggiorno la lista… 🔄', 1200);
+  return api('leggiSezione', 'Spesa').then(l => { S.spesa = l; if (S.vista === 'spesa' && !$('#velo')) render(); }).catch(e => { if (!silenzioso) errore(e); });
+}
+function svuotaPresi() {
+  api('svuotaPresi').then(l => { S.spesa = l; render(); toast('Carrello svuotato 🧹'); }).catch(errore);
+}
+function mandaSpesa() {
+  let t = '🛒 Lista della spesa\n';
+  REPARTI.forEach(([nome, ico]) => {
+    const voci = S.spesa.filter(x => x.preso !== 'si' && repartoInfo(x.reparto)[0] === nome);
+    if (!voci.length) return;
+    t += '\n' + ico + ' ' + nome + '\n' + voci.map(x => '• ' + x.nome + (x.quantita ? ' (' + x.quantita + ')' : '')).join('\n') + '\n';
+  });
+  condividiTesto(t);
+}
+function apriVoceSpesa(id) {
+  const x = S.spesa.find(v => v.id === id); if (!x) return;
+  apriFinestra(`<h3>✏️ ${esc(x.nome)}<button class="icon-btn x" onclick="chiudiFinestra()">✕</button></h3>
+    <div class="two">
+      <div><label class="f">Cosa</label><input class="in" id="vNome" value="${esc(x.nome)}"></div>
+      <div><label class="f">Quanto</label><input class="in" id="vQta" value="${esc(x.quantita)}" placeholder="Es. 2, 1 kg"></div>
+    </div>
+    <label class="f">Reparto</label>
+    <div class="pick" id="vRep">${REPARTI.map(r => `<button type="button" class="${r[0] === repartoInfo(x.reparto)[0] ? 'on' : ''}" data-id="${r[0]}" onclick="scegliUno(this)">${r[1]} ${r[0]}</button>`).join('')}</div>
+    <div class="azioni">
+      <button class="btn danger" onclick="eliminaVoceSpesa('${id}')">🗑️ Togli</button>
+      <button class="btn" onclick="salvaVoceSpesa('${id}')">💾 Salva</button>
+    </div>`);
+}
+function salvaVoceSpesa(id) {
+  const x = Object.assign({}, S.spesa.find(v => v.id === id));
+  x.nome = $('#vNome').value.trim() || x.nome; x.quantita = $('#vQta').value.trim(); x.reparto = personaScelta('vRep') || 'Altro';
+  api('salva', 'Spesa', x).then(r => { const i = S.spesa.findIndex(v => v.id === id); S.spesa[i] = r.obj; chiudiFinestra(); render(); }).catch(errore);
+}
+function eliminaVoceSpesa(id) {
+  S.spesa = S.spesa.filter(v => v.id !== id); chiudiFinestra(); render();
+  api('elimina', 'Spesa', id).catch(errore);
+}
+
+/* =========================================================
+   Progetti futuri
+   ========================================================= */
+const CAT_PROG = [['Viaggio', '✈️'], ['Casa', '🏠'], ['Auto', '🚗'], ['Acquisti', '🛍️'], ['Famiglia', '👨‍👩‍👦'], ['Festa', '🎉'], ['Studio', '🎓'], ['Salute', '🩺'], ['Lavoro', '💼'], ['Altro', '💡']];
+const STATI = { idea: ['💡', 'Idea', 'b-grey'], inCorso: ['🚧', 'In corso', 'b-orange'], fatto: ['✅', 'Fatto!', 'b-green'] };
+const PRIORITA = { alta: ['🔥', 'Priorità alta'], media: ['👍', 'Priorità media'], bassa: ['💤', 'Con calma'] };
+const euro = n => (Math.round(+n || 0)).toLocaleString('it-IT') + ' €';
+const passiDi = p => { try { return JSON.parse(p.passi || '[]'); } catch (e) { return []; } };
+const catProg = c => CAT_PROG.find(x => x[0] === c) || CAT_PROG[CAT_PROG.length - 1];
+
+function vistaProgetti() {
+  const f = S.filtroProgetti;
+  const ordS = { inCorso: 0, idea: 1, fatto: 2 }, ordP = { alta: 0, media: 1, bassa: 2 };
+  const lista = S.progetti.filter(p => !f || p.stato === f).sort((a, b) =>
+    (ordS[a.stato] ?? 1) - (ordS[b.stato] ?? 1) || (ordP[a.priorita] ?? 1) - (ordP[b.priorita] ?? 1) || (a.dataObiettivo || '9') .localeCompare(b.dataObiettivo || '9'));
+  const aperti = S.progetti.filter(p => p.stato !== 'fatto' && +p.costo > 0);
+  const serve = aperti.reduce((s, p) => s + (+p.costo || 0), 0), messi = aperti.reduce((s, p) => s + Math.min(+p.messoDaParte || 0, +p.costo || 0), 0);
+  let h = `<div class="calhead"><h2>🎯 Progetti futuri</h2><button class="btn small" onclick="apriProgetto()">➕ Nuovo</button></div>`;
+  if (serve) h += `<div class="card"><b>💰 Il salvadanaio</b><div class="mini">Per i progetti aperti servono ${euro(serve)}: ne avete messi da parte ${euro(messi)}.</div>${barra(messi / serve, 'var(--ok)')}</div>`;
+  h += `<div class="chips">
+    ${[['', 'Tutti'], ['idea', '💡 Idee'], ['inCorso', '🚧 In corso'], ['fatto', '✅ Fatti']].map(([k, t]) => `<button class="chip ${f === k ? 'on' : ''}" onclick="S.filtroProgetti='${k}';render()">${t}</button>`).join('')}
+  </div>`;
+  if (!lista.length) return h + `<div class="card"><div class="empty"><b>🌱</b>${S.progetti.length ? 'Niente qui.' : 'Nessun progetto ancora. Un viaggio? La cucina nuova? Scrivetelo qui, così non resta solo un sogno!'}</div></div>`;
+  h += '<div class="grid2">' + lista.map(p => {
+    const st = STATI[p.stato] || STATI.idea, pr = PRIORITA[p.priorita] || PRIORITA.media, passi = passiDi(p);
+    const fatti = passi.filter(x => x.f).length, chi = String(p.persone || '').split(',').map(persona).filter(Boolean);
+    return `<div class="card prog ${p.stato === 'fatto' ? 'chiuso' : ''}" onclick="apriProgetto('${p.id}')">
+      <div class="prog-top"><span class="av" style="background:var(--warn-soft)">${catProg(p.categoria)[1]}</span>
+        <div class="txt"><div class="t">${esc(p.titolo)}</div>
+        <div style="margin-top:3px"><span class="badge ${st[2]}">${st[0]} ${st[1]}</span> <span class="badge b-grey">${pr[0]} ${pr[1]}</span></div></div></div>
+      ${p.descrizione ? `<p class="mini" style="margin:8px 0 0">${esc(p.descrizione)}</p>` : ''}
+      ${passi.length ? `<div class="mini" style="margin-top:8px">✔️ ${fatti} passi su ${passi.length}</div>${barra(fatti / passi.length, 'var(--accent)')}` : ''}
+      ${+p.costo ? `<div class="mini" style="margin-top:8px">💰 ${euro(p.messoDaParte)} su ${euro(p.costo)}</div>${barra((+p.messoDaParte || 0) / (+p.costo), 'var(--ok)')}` : ''}
+      ${p.dataObiettivo ? `<div class="mini" style="margin-top:8px">🎯 Entro il ${fData(p.dataObiettivo)} ${p.stato !== 'fatto' ? badgeGiorni(p.dataObiettivo) : ''}</div>` : ''}
+      ${chi.length ? `<div class="mini" style="margin-top:6px">${chi.map(x => esc(x.emoji || '🙂') + ' ' + esc(x.nome)).join(' · ')}</div>` : ''}
+    </div>`;
+  }).join('') + '</div>';
+  return h;
+}
+function barra(q, colore) {
+  const pc = Math.max(0, Math.min(1, q || 0)) * 100;
+  return `<div class="barra"><i style="width:${pc}%;background:${colore}"></i></div>`;
+}
+let PG = null; // passi del progetto in modifica
+function apriProgetto(id) {
+  const p = id ? Object.assign({}, S.progetti.find(x => x.id === id)) : { titolo: '', descrizione: '', categoria: 'Altro', priorita: 'media', stato: 'idea', costo: '', messoDaParte: '', dataObiettivo: '', persone: '', passi: '[]', note: '' };
+  PG = passiDi(p);
+  const sel = String(p.persone || '').split(',');
+  apriFinestra(`<h3>${id ? '✏️ Progetto' : '🎯 Nuovo progetto'}<button class="icon-btn x" onclick="chiudiFinestra()">✕</button></h3>
+    <label class="f">Cosa vorreste fare?</label>
+    <input class="in" id="gTitolo" value="${esc(p.titolo)}" placeholder="Es. Vacanza in Sardegna, cucina nuova…">
+    <label class="f">Due parole in più</label>
+    <textarea class="in" id="gDescr" placeholder="Facoltativo">${esc(p.descrizione)}</textarea>
+    <label class="f">Tipo</label>
+    <div class="pick" id="gCat">${CAT_PROG.map(c => `<button type="button" class="${c[0] === p.categoria ? 'on' : ''}" data-id="${c[0]}" onclick="scegliUno(this)">${c[1]} ${c[0]}</button>`).join('')}</div>
+    <label class="f">A che punto siete?</label>
+    <div class="pick" id="gStato">${Object.keys(STATI).map(k => `<button type="button" class="${k === p.stato ? 'on' : ''}" data-id="${k}" onclick="scegliUno(this)">${STATI[k][0]} ${STATI[k][1]}</button>`).join('')}</div>
+    <label class="f">Quanto è importante?</label>
+    <div class="pick" id="gPrio">${Object.keys(PRIORITA).map(k => `<button type="button" class="${k === p.priorita ? 'on' : ''}" data-id="${k}" onclick="scegliUno(this)">${PRIORITA[k][0]} ${PRIORITA[k][1]}</button>`).join('')}</div>
+    <div class="two">
+      <div><label class="f">Quanto costa (€)</label><input class="in" type="number" inputmode="decimal" min="0" id="gCosto" value="${esc(p.costo)}" placeholder="Circa"></div>
+      <div><label class="f">Già messi da parte (€)</label><input class="in" type="number" inputmode="decimal" min="0" id="gMessi" value="${esc(p.messoDaParte)}"></div>
+    </div>
+    <label class="f">Entro quando? (va anche nel calendario)</label>
+    <input class="in" type="date" id="gData" value="${esc(p.dataObiettivo)}">
+    <label class="f">Chi è coinvolto?</label>
+    <div class="pick" id="gPersone">${S.persone.map(x => `<button type="button" class="${sel.includes(x.id) ? 'on' : ''}" data-id="${x.id}" onclick="this.classList.toggle('on')">${esc(x.emoji || '🙂')} ${esc(x.nome)}</button>`).join('') || '<span class="mini">Ancora nessuno in famiglia</span>'}</div>
+    <label class="f">I passi da fare</label>
+    <div id="gPassi"></div>
+    <div class="spadd" style="margin-top:6px"><input class="in" id="gNuovoPasso" placeholder="Es. Chiedere un preventivo" onkeydown="if(event.key==='Enter')aggiungiPasso()"><button class="btn sec" onclick="aggiungiPasso()">➕</button></div>
+    <label class="f">Note</label>
+    <textarea class="in" id="gNote">${esc(p.note)}</textarea>
+    <div class="azioni">
+      ${id ? `<button class="btn danger" onclick="eliminaProgetto('${id}')">🗑️ Elimina</button>` : ''}
+      <button class="btn" id="gSalva" onclick="salvaProgetto('${id || ''}')">💾 Salva</button>
+    </div>`);
+  disegnaPassi();
+}
+function disegnaPassi() {
+  const box = $('#gPassi'); if (!box) return;
+  box.innerHTML = PG.length ? PG.map((x, i) => `<div class="sp-row ${x.f ? 'fatto' : ''}" onclick="PG[${i}].f=!PG[${i}].f;disegnaPassi()">
+    <span class="check">${x.f ? '✓' : ''}</span><div class="txt"><div class="t">${esc(x.t)}</div></div>
+    <button class="btn ghost small" onclick="event.stopPropagation();PG.splice(${i},1);disegnaPassi()">✕</button></div>`).join('')
+    : '<div class="mini">Spezzate il progetto in piccoli passi: è più facile partire 😉</div>';
+}
+function aggiungiPasso() {
+  const inp = $('#gNuovoPasso'), t = inp.value.trim();
+  if (!t) return;
+  PG.push({ t, f: false }); inp.value = ''; disegnaPassi(); inp.focus();
+}
+function salvaProgetto(id) {
+  const p = id ? Object.assign({}, S.progetti.find(x => x.id === id)) : {};
+  p.titolo = $('#gTitolo').value.trim();
+  if (!p.titolo) return toast('Scrivi cosa vorreste fare 🙂');
+  p.descrizione = $('#gDescr').value.trim();
+  p.categoria = personaScelta('gCat') || 'Altro';
+  p.stato = personaScelta('gStato') || 'idea';
+  p.priorita = personaScelta('gPrio') || 'media';
+  p.costo = $('#gCosto').value; p.messoDaParte = $('#gMessi').value;
+  p.dataObiettivo = $('#gData').value;
+  p.persone = Array.from(document.querySelectorAll('#gPersone button.on')).map(b => b.dataset.id).join(',');
+  const resto = $('#gNuovoPasso').value.trim(); if (resto) PG.push({ t: resto, f: false });
+  p.passi = JSON.stringify(PG);
+  p.note = $('#gNote').value.trim();
+  const btn = $('#gSalva'); btn.disabled = true; btn.textContent = 'Un attimo… ⏳';
+  api('salva', 'Progetti', p).then(r => {
+    const i = S.progetti.findIndex(x => x.id === r.obj.id);
+    if (i >= 0) S.progetti[i] = r.obj; else S.progetti.push(r.obj);
+    chiudiFinestra(); render();
+    toast(r.avviso || (r.obj.stato === 'fatto' ? 'Fatto! Complimenti 🎉🎉' : 'Salvato ✅' + (r.obj.dataObiettivo ? ' Obiettivo nel calendario 🎯' : '')), r.avviso ? 6000 : 2800);
+  }).catch(e => { btn.disabled = false; btn.textContent = '💾 Salva'; errore(e); });
+}
+function eliminaProgetto(id) {
+  chiedi('Cancello questo progetto?', 'Sparisce anche l\'obiettivo dal calendario.').then(si => {
+    if (!si) return;
+    api('elimina', 'Progetti', id).then(() => { S.progetti = S.progetti.filter(x => x.id !== id); chiudiFinestra(); render(); toast('Cancellato 👋'); }).catch(errore);
+  });
+}
+
+/* =========================================================
+   Numeri utili
+   ========================================================= */
+const CAT_NUM = [['Medici e salute', '🩺'], ['Scuola', '🏫'], ['Guasti e casa', '🔧'], ['Uffici e servizi', '🏛️'], ['Auto e trasporti', '🚗'], ['Lavoro', '💼'], ['Famiglia e amici', '👨‍👩‍👦'], ['Chiesa', '🙏'], ['Negozi', '🛍️'], ['Altro', '📌']];
+const EMERGENZE = [['112', 'Emergenze', '🚨'], ['118', 'Ambulanza', '🚑'], ['115', 'Vigili del fuoco', '🚒'], ['113', 'Polizia', '🚓'], ['1530', 'Guardia costiera', '⚓']];
+const catNum = c => CAT_NUM.find(x => x[0] === c) || CAT_NUM[CAT_NUM.length - 1];
+const telPulito = n => String(n || '').replace(/[^\d+]/g, '');
+function whatsapp(n) {
+  // WhatsApp solo per i cellulari: italiani (3xx) o esteri scritti con +/00
+  let d = String(n || '').trim(), estero = false;
+  if (d.startsWith('+')) { d = d.slice(1).replace(/\D/g, ''); estero = true; }
+  else { d = d.replace(/\D/g, ''); if (d.startsWith('00')) { d = d.slice(2); estero = true; } else if (d.startsWith('3')) d = '39' + d; }
+  if (/^393\d{8,9}$/.test(d)) return 'https://wa.me/' + d;
+  if (estero && !d.startsWith('39') && d.length > 8) return 'https://wa.me/' + d;
+  return '';
+}
+function vistaNumeri() {
+  const q = norm(S.cercaNumeri);
+  let lista = S.numeri.filter(n => !q || norm([n.nome, n.categoria, n.note, n.telefono, n.indirizzo].join(' ')).includes(q));
+  lista.sort((a, b) => a.nome.localeCompare(b.nome));
+  let h = `<div class="calhead"><h2>📞 Numeri utili</h2><button class="btn small" onclick="apriNumero()">➕ Nuovo</button></div>
+  <div class="card"><b>🚨 Emergenze</b><div class="emerg">${EMERGENZE.map(([n, t, i]) => `<a href="tel:${n}" target="_top"><b>${i} ${n}</b><span>${t}</span></a>`).join('')}</div></div>
+  <input class="search" placeholder="🔎 Cerca… (es. pediatra, idraulico)" value="${esc(S.cercaNumeri)}" oninput="S.cercaNumeri=this.value;$('#listaNum').innerHTML=listaNumeriHtml()">
+  <div id="listaNum">${listaNumeriHtml()}</div>`;
+  return h;
+}
+function listaNumeriHtml() {
+  const q = norm(S.cercaNumeri);
+  const lista = S.numeri.filter(n => !q || norm([n.nome, n.categoria, n.note, n.telefono, n.indirizzo].join(' ')).includes(q)).sort((a, b) => a.nome.localeCompare(b.nome));
+  if (!lista.length) return `<div class="card"><div class="empty"><b>📒</b>${S.numeri.length ? 'Nessuno con questo nome.' : 'Rubrica vuota. Metti il pediatra, il medico di base, la scuola, l\'idraulico… quelli che servono sempre all\'improvviso!'}</div></div>`;
+  let h = '';
+  const pref = lista.filter(n => n.preferito === 'si');
+  if (pref.length && !q) h += `<div class="card"><div class="sp-rep">⭐ Preferiti</div>${pref.map(rigaNumero).join('')}</div>`;
+  CAT_NUM.forEach(([c, ico]) => {
+    const v = lista.filter(n => catNum(n.categoria)[0] === c && (q || n.preferito !== 'si'));
+    if (v.length) h += `<div class="card"><div class="sp-rep">${ico} ${c}</div>${v.map(rigaNumero).join('')}</div>`;
+  });
+  return h;
+}
+function rigaNumero(n) {
+  const wa = whatsapp(n.telefono2) || whatsapp(n.telefono);
+  const stop = 'onclick="event.stopPropagation()"';
+  return `<div class="row num" onclick="apriNumero('${n.id}')">
+    <div class="ico" style="background:var(--accent-soft)">${catNum(n.categoria)[1]}</div>
+    <div class="txt"><div class="t">${n.preferito === 'si' ? '⭐ ' : ''}${esc(n.nome)}</div>
+      <div class="s">${esc([n.telefono, n.telefono2].filter(Boolean).join(' · '))}${n.note ? ' · ' + esc(n.note) : ''}</div>
+      <div class="azn">
+        ${n.telefono ? `<a class="btn teal small" href="tel:${esc(telPulito(n.telefono))}" target="_top" ${stop}>📞 Chiama</a>` : ''}
+        ${n.telefono2 ? `<a class="btn sec small" href="tel:${esc(telPulito(n.telefono2))}" target="_top" ${stop}>📱 Cellulare</a>` : ''}
+        ${wa ? `<a class="btn sec small" href="${esc(wa)}" target="_blank" ${stop}>💬 WhatsApp</a>` : ''}
+        ${n.email ? `<a class="btn sec small" href="mailto:${esc(n.email)}" target="_top" ${stop}>✉️</a>` : ''}
+        ${n.indirizzo ? `<a class="btn sec small" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(n.indirizzo)}" target="_blank" ${stop}>📍</a>` : ''}
+      </div></div>
+  </div>`;
+}
+function apriNumero(id) {
+  const n = id ? Object.assign({}, S.numeri.find(x => x.id === id)) : { nome: '', categoria: 'Medici e salute', telefono: '', telefono2: '', email: '', indirizzo: '', note: '', preferito: '' };
+  apriFinestra(`<h3>${id ? '✏️ ' + esc(n.nome) : '📞 Nuovo numero'}<button class="icon-btn x" onclick="chiudiFinestra()">✕</button></h3>
+    <label class="f">Chi è?</label>
+    <input class="in" id="nNome" value="${esc(n.nome)}" placeholder="Es. Pediatra dott. Rossi">
+    <label class="f">Tipo</label>
+    <div class="pick" id="nCat">${CAT_NUM.map(c => `<button type="button" class="${c[0] === n.categoria ? 'on' : ''}" data-id="${c[0]}" onclick="scegliUno(this)">${c[1]} ${c[0]}</button>`).join('')}</div>
+    <div class="two">
+      <div><label class="f">Telefono</label><input class="in" type="tel" id="nTel" value="${esc(n.telefono)}"></div>
+      <div><label class="f">Cellulare / altro</label><input class="in" type="tel" id="nTel2" value="${esc(n.telefono2)}"></div>
+    </div>
+    <label class="f">Email</label><input class="in" type="email" id="nEmail" value="${esc(n.email)}">
+    <label class="f">Indirizzo</label><input class="in" id="nInd" value="${esc(n.indirizzo)}" placeholder="Per aprirlo in Google Maps">
+    <label class="f">Note</label><input class="in" id="nNote" value="${esc(n.note)}" placeholder="Es. riceve lun-ven 9-12">
+    <label class="toggle" style="margin-top:12px"><input type="checkbox" id="nPref" ${n.preferito === 'si' ? 'checked' : ''}> ⭐ Mettilo tra i preferiti</label>
+    <div class="azioni">
+      ${id ? `<button class="btn danger" onclick="eliminaNumero('${id}')">🗑️ Elimina</button>` : ''}
+      <button class="btn" id="nSalva" onclick="salvaNumero('${id || ''}')">💾 Salva</button>
+    </div>`);
+}
+function salvaNumero(id) {
+  const n = id ? Object.assign({}, S.numeri.find(x => x.id === id)) : {};
+  n.nome = $('#nNome').value.trim();
+  if (!n.nome) return toast('Scrivi chi è 🙂');
+  n.categoria = personaScelta('nCat') || 'Altro';
+  n.telefono = $('#nTel').value.trim(); n.telefono2 = $('#nTel2').value.trim();
+  if (!n.telefono && !n.telefono2 && !$('#nEmail').value.trim()) return toast('Metti almeno un numero 🙂');
+  n.email = $('#nEmail').value.trim(); n.indirizzo = $('#nInd').value.trim(); n.note = $('#nNote').value.trim();
+  n.preferito = $('#nPref').checked ? 'si' : '';
+  const btn = $('#nSalva'); btn.disabled = true; btn.textContent = 'Un attimo… ⏳';
+  api('salva', 'Numeri', n).then(r => {
+    const i = S.numeri.findIndex(x => x.id === r.obj.id);
+    if (i >= 0) S.numeri[i] = r.obj; else S.numeri.push(r.obj);
+    chiudiFinestra(); render(); toast('Salvato in rubrica 📒');
+  }).catch(e => { btn.disabled = false; btn.textContent = '💾 Salva'; errore(e); });
+}
+function eliminaNumero(id) {
+  chiedi('Tolgo questo numero?', 'Lo cancello dalla rubrica di casa.').then(si => {
+    if (!si) return;
+    api('elimina', 'Numeri', id).then(() => { S.numeri = S.numeri.filter(x => x.id !== id); chiudiFinestra(); render(); toast('Tolto 👋'); }).catch(errore);
+  });
+}
+
+/* =========================================================
    Impostazioni
    ========================================================= */
 function apriImpostazioni() {
   const i = S.imp;
   apriFinestra(`<h3>⚙️ Impostazioni<button class="icon-btn x" onclick="chiudiFinestra()">✕</button></h3>
     <label class="f">Come ti chiamo?</label>
-    <input class="in" id="sNome" value="${esc(i.nome)}">
+    <input class="in" id="sNome" value="${esc(S.io.nome)}">
     <label class="f">Dove metto scadenze e impegni nel Google Calendar?</label>
     <select class="in" id="sCal" onchange="$('#sAltroBox').style.display=this.value==='altro'?'block':'none'">
-      <option value="dedicato" ${i.calendario === 'dedicato' ? 'selected' : ''}>In un calendario a parte “🏠 Casa Santoro” (consigliato)</option>
-      <option value="principale" ${i.calendario === 'principale' ? 'selected' : ''}>Nel mio calendario principale</option>
+      <option value="dedicato" ${i.calendario === 'dedicato' ? 'selected' : ''}>In un calendario a parte “🏠 Casa Santoro/Longobardi” (consigliato, si condivide in famiglia)</option>
+      <option value="principale" ${i.calendario === 'principale' ? 'selected' : ''}>Nel calendario principale di ${esc(S.io.proprietario ? 'me' : 'chi ha creato l\'app')}</option>
       <option value="altro" ${i.calendario === 'altro' ? 'selected' : ''}>In un calendario di un altro account</option>
     </select>
     <div id="sAltroBox" style="display:${i.calendario === 'altro' ? 'block' : 'none'}">
       <label class="f">ID del calendario (es. tuonome@gmail.com)</label>
       <input class="in" id="sAltro" value="${esc(i.calendarioAltro || '')}">
-      <p class="mini">Quel calendario va condiviso con ${esc(S.email || 'questo account')} con il permesso “Apportare modifiche agli eventi”.</p>
+      <p class="mini">Quel calendario va condiviso con ${esc(S.io.email || 'questo account')} con il permesso “Apportare modifiche agli eventi”.</p>
     </div>
     <label class="f">Preavviso di base per le scadenze</label>
     <select class="in" id="sPre">${[[7, '1 settimana'], [15, '15 giorni'], [30, '1 mese'], [60, '2 mesi']].map(o => `<option value="${o[0]}" ${+i.preavviso === o[0] ? 'selected' : ''}>${o[1]}</option>`).join('')}</select>
-    <label class="toggle" style="margin-top:14px"><input type="checkbox" id="sEmail" ${i.emailAttiva || i.email ? 'checked' : ''}> Mandami un'email la mattina quando qualcosa sta per scadere</label>
+    <label class="toggle" style="margin-top:14px"><input type="checkbox" id="sEmail" ${S.io.emailAttiva ? 'checked' : ''}> Mandami un'email la mattina quando qualcosa sta per scadere (solo a me)</label>
     <label class="toggle" style="margin-top:10px"><input type="checkbox" id="sGoogle" ${i.mostraGoogle ? 'checked' : ''}> Fammi vedere il mio Google Calendar dentro l'app</label>
     <div class="azioni"><button class="btn" id="sSalva" onclick="salvaImpostazioni()">💾 Salva</button></div>
     <div class="sep"></div>
@@ -1123,17 +1577,17 @@ function apriImpostazioni() {
       ${S.link.cartella ? `<button class="btn sec small" onclick="window.open('${esc(S.link.cartella)}','_blank')">📁 Apri la cartella dei documenti</button>` : ''}
       ${S.link.foglio ? `<button class="btn sec small" onclick="window.open('${esc(S.link.foglio)}','_blank')">📊 Apri il foglio dei dati</button>` : ''}
     </div>
-    <p class="mini">${S.email ? 'Collegato come ' + esc(S.email) : ''}</p>`);
+    <p class="mini">${S.io.email ? 'Collegato come ' + esc(S.io.email) : ''}</p>`);
 }
 function salvaImpostazioni() {
   const nuove = {
-    nome: $('#sNome').value.trim() || 'Carmine', calendario: $('#sCal').value, calendarioAltro: $('#sAltro').value.trim(),
+    nome: $('#sNome').value.trim(), calendario: $('#sCal').value, calendarioAltro: $('#sAltro').value.trim(),
     preavviso: +$('#sPre').value, email: $('#sEmail').checked, mostraGoogle: $('#sGoogle').checked
   };
   const cambiaCal = nuove.calendario !== S.imp.calendario;
   const btn = $('#sSalva'); btn.disabled = true; btn.textContent = cambiaCal ? 'Sposto gli eventi… ⏳' : 'Un attimo… ⏳';
   api('salvaImpostazioni', nuove).then(r => {
-    S.imp = r.impostazioni; S.google = {}; S.googleCarico = {};
+    S.imp = r.impostazioni; if (r.io) S.io = r.io; S.google = {}; S.googleCarico = {};
     chiudiFinestra(); render();
     toast(r.spostati ? 'Fatto! Ho rimesso ' + r.spostati + ' cose nel nuovo calendario 📅' : 'Salvato ✅');
   }).catch(e => { btn.disabled = false; btn.textContent = '💾 Salva'; errore(e); });
@@ -1167,15 +1621,26 @@ function sceltaNuovo() {
   apriFinestra(`<h3>Cosa aggiungiamo? ✨<button class="icon-btn x" onclick="chiudiFinestra()">✕</button></h3>
     <div class="row" onclick="apriDocumento()"><div class="ico" style="background:var(--primary-soft)">📄</div><div class="txt"><div class="t">Un documento</div><div class="s">Carta d'identità, patente, assicurazione…</div></div></div>
     <div class="row" onclick="apriImpegno(null, S.vista==='cal'?S.giornoSel:null)"><div class="ico" style="background:var(--accent-soft)">📌</div><div class="txt"><div class="t">Un impegno</div><div class="s">Visite, scuola, sport, feste…</div></div></div>
-    <div class="row" onclick="apriPersona()"><div class="ico" style="background:var(--warn-soft)">👤</div><div class="txt"><div class="t">Una persona</div><div class="s">Qualcuno della famiglia</div></div></div>
-    <div class="row" onclick="chiudiFinestra();vai('cerca')"><div class="ico" style="background:var(--ok-soft)">🔍</div><div class="txt"><div class="t">Cerca in una cartella</div><div class="s">Trovo io i documenti della famiglia</div></div></div>`);
+    <div class="row" onclick="vai('spesa');setTimeout(()=>$('#spNome')&&$('#spNome').focus(),50)"><div class="ico" style="background:var(--ok-soft)">🛒</div><div class="txt"><div class="t">Qualcosa da comprare</div><div class="s">Nella lista della spesa</div></div></div>
+    <div class="row" onclick="apriProgetto()"><div class="ico" style="background:var(--warn-soft)">🎯</div><div class="txt"><div class="t">Un progetto</div><div class="s">Viaggi, lavori in casa, acquisti, sogni…</div></div></div>
+    <div class="row" onclick="apriNumero()"><div class="ico" style="background:var(--accent-soft)">📞</div><div class="txt"><div class="t">Un numero utile</div><div class="s">Medico, idraulico, scuola…</div></div></div>
+    <div class="row" onclick="apriPersona()"><div class="ico" style="background:var(--primary-soft)">👤</div><div class="txt"><div class="t">Una persona</div><div class="s">Qualcuno della famiglia</div></div></div>
+    <div class="row" onclick="vai('cerca')"><div class="ico" style="background:var(--ok-soft)">🔍</div><div class="txt"><div class="t">Cerca in una cartella</div><div class="s">Trovo io i documenti della famiglia</div></div></div>`);
+}
+function menuAltro() {
+  apriFinestra(`<h3>☰ Altro<button class="icon-btn x" onclick="chiudiFinestra()">✕</button></h3>
+    <div class="row" onclick="vai('prog')"><div class="ico" style="background:var(--warn-soft)">🎯</div><div class="txt"><div class="t">Progetti futuri</div><div class="s">${S.progetti.filter(p => p.stato !== 'fatto').length} da fare</div></div></div>
+    <div class="row" onclick="vai('num')"><div class="ico" style="background:var(--accent-soft)">📞</div><div class="txt"><div class="t">Numeri utili</div><div class="s">${S.numeri.length} contatti + emergenze</div></div></div>
+    <div class="row" onclick="vai('fam')"><div class="ico" style="background:var(--primary-soft)">👨‍👩‍👦</div><div class="txt"><div class="t">Famiglia</div><div class="s">Persone e condivisione dell'app</div></div></div>
+    <div class="row" onclick="vai('cerca')"><div class="ico" style="background:var(--ok-soft)">🔍</div><div class="txt"><div class="t">Cerca documenti in una cartella</div><div class="s">Drive, PC o chiavetta (solo lettura)</div></div></div>
+    <div class="row" onclick="apriImpostazioni()"><div class="ico" style="background:var(--line)">⚙️</div><div class="txt"><div class="t">Impostazioni</div><div class="s">Calendario, promemoria, il tuo nome</div></div></div>`);
 }
 
 /* =========================================================
    Modalita' prova (solo quando l'app NON e' su Google)
    ========================================================= */
 const PROVA = (() => {
-  const K = 'casaSantoroProva';
+  const K = 'casaSantoroProva2';
   const leggi = () => { try { return JSON.parse(localStorage.getItem(K)) || null; } catch (e) { return null; } };
   let db = leggi();
   if (!db) {
@@ -1195,19 +1660,45 @@ const PROVA = (() => {
         { id: 'i1', titolo: 'Pediatra', categoria: 'Salute', data: a(2), oraInizio: '17:30', oraFine: '18:00', tuttoIlGiorno: 'no', persone: 'p3', luogo: 'Studio medico', note: '', ripeti: 'no', ripetiFino: '', promemoria: '60' },
         { id: 'i2', titolo: 'Riunione di gruppo', categoria: 'Chiesa', data: a(-6), oraInizio: '20:30', oraFine: '22:00', tuttoIlGiorno: 'no', persone: 'p1,p2', luogo: '', note: '', ripeti: 'settimanale', ripetiFino: '', promemoria: '30' }
       ],
-      Ignorati: [], imp: { nome: "Mario", calendario: 'dedicato', preavviso: 30, mostraGoogle: true, email: false, cartellaScansione: '', calendarioAltro: '' }
+      Spesa: [
+        { id: 's1', nome: 'Latte', quantita: '2', reparto: 'Latticini e uova', preso: '', aggiuntoDa: 'Anna' },
+        { id: 's2', nome: 'Pane', quantita: '', reparto: 'Pane e dolci', preso: '', aggiuntoDa: 'Mario' },
+        { id: 's3', nome: 'Mele', quantita: '1 kg', reparto: 'Frutta e verdura', preso: 'si', aggiuntoDa: 'Anna' },
+        { id: 's4', nome: 'Detersivo piatti', quantita: '', reparto: 'Casa e pulizia', preso: '', aggiuntoDa: 'Mario' }
+      ],
+      Progetti: [
+        { id: 'g1', titolo: 'Vacanza in Sardegna', descrizione: 'Due settimane ad agosto', categoria: 'Viaggio', priorita: 'alta', stato: 'inCorso', costo: '3000', messoDaParte: '1200', dataObiettivo: a(120), persone: 'p1,p2,p3', passi: JSON.stringify([{ t: 'Scegliere la zona', f: true }, { t: 'Prenotare il traghetto', f: false }, { t: 'Prenotare la casa', f: false }]), note: '' },
+        { id: 'g2', titolo: 'Ridipingere la cameretta', descrizione: '', categoria: 'Casa', priorita: 'media', stato: 'idea', costo: '400', messoDaParte: '', dataObiettivo: '', persone: 'p3', passi: '[]', note: '' }
+      ],
+      Numeri: [
+        { id: 'n1', nome: 'Pediatra dott.ssa Esempio', categoria: 'Medici e salute', telefono: '081 0000000', telefono2: '333 0000000', email: '', indirizzo: 'Via Roma 1, Napoli', note: 'Lun-ven 9-12', preferito: 'si' },
+        { id: 'n2', nome: 'Idraulico Gigi', categoria: 'Guasti e casa', telefono: '347 0000000', telefono2: '', email: '', indirizzo: '', note: '', preferito: '' }
+      ],
+      Ignorati: [], imp: { calendario: 'dedicato', preavviso: 30, mostraGoogle: true, cartellaScansione: '', calendarioAltro: '' },
+      io: { email: 'mario@esempio.it', nome: 'Mario', proprietario: true, emailAttiva: false }
     };
   }
+  ['Spesa', 'Progetti', 'Numeri'].forEach(k => { if (!db[k]) db[k] = []; });
+  if (!db.io) db.io = { email: 'mario@esempio.it', nome: 'Mario', proprietario: true, emailAttiva: false };
   const salvaDb = () => { try { localStorage.setItem(K, JSON.stringify(db)); } catch (e) {} };
   return {
-    getTutto: () => ({ persone: db.Persone, documenti: db.Documenti, impegni: db.Impegni, ignorati: db.Ignorati.map(x => x.id), impostazioni: db.imp, link: {}, email: 'prova@esempio.it' }),
-    salva: (tipo, o) => { if (!o.id) o.id = Math.random().toString(16).slice(2, 10); const l = db[tipo], i = l.findIndex(x => x.id === o.id); if (i >= 0) l[i] = o; else l.push(o); salvaDb(); return { obj: o, avviso: '' }; },
+    getTutto: () => ({ persone: db.Persone, documenti: db.Documenti, impegni: db.Impegni, spesa: db.Spesa, progetti: db.Progetti, numeri: db.Numeri, ignorati: db.Ignorati.map(x => x.id), impostazioni: db.imp, link: {}, io: db.io }),
+    leggiSezione: tipo => db[tipo],
+    svuotaPresi: () => { db.Spesa = db.Spesa.filter(x => x.preso !== 'si'); salvaDb(); return db.Spesa; },
+    condividiCon: id => { const p = db.Persone.find(x => x.id === id); p.accesso = 'si'; salvaDb(); return { obj: p, avvisi: [] }; },
+    togliCondivisione: id => { const p = db.Persone.find(x => x.id === id); p.accesso = ''; salvaDb(); return { obj: p, avvisi: [] }; },
+    salva: (tipo, o) => { if (!o.id) o.id = Math.random().toString(16).slice(2, 10); if (tipo === 'Spesa' && !o.aggiuntoDa) o.aggiuntoDa = db.io.nome; const l = db[tipo], i = l.findIndex(x => x.id === o.id); if (i >= 0) l[i] = o; else l.push(o); salvaDb(); return { obj: o, avviso: '' }; },
     elimina: (tipo, id) => { db[tipo] = db[tipo].filter(x => x.id !== id); salvaDb(); return true; },
     caricaFile: (p, nome, mime) => ({ id: 'f' + Date.now(), nome, mime, url: '#' }),
     copiaFileDrive: (id) => ({ id: 'f' + Date.now(), nome: 'copia.pdf', mime: 'application/pdf', url: '#' }),
     cestinaFile: () => true,
     eventiGoogle: (da) => [{ titolo: 'Cena dai nonni', data: addGiorni(da, 12), fine: addGiorni(da, 12), ora: '20:00', oraFine: '23:00', luogo: '', calendario: 'Personale', colore: '#9e69af' }],
-    salvaImpostazioni: n => { Object.assign(db.imp, n); salvaDb(); return { impostazioni: Object.assign({ emailAttiva: !!db.imp.email }, db.imp), spostati: 0 }; },
+    salvaImpostazioni: n => {
+      if (n.nome !== undefined) db.io.nome = n.nome;
+      if (n.email !== undefined) db.io.emailAttiva = !!n.email;
+      ['calendario', 'calendarioAltro', 'preavviso', 'mostraGoogle'].forEach(k => { if (n[k] !== undefined) db.imp[k] = n[k]; });
+      salvaDb(); return { impostazioni: db.imp, io: db.io, spostati: 0 };
+    },
     sincronizzaTutto: () => db.Documenti.length + db.Impegni.length,
     scansionaCartella: () => ({ nomeCartella: 'Documenti di prova', troncato: false, files: [
       { id: 'x1', nome: 'tessera sanitaria anna.pdf', mime: 'application/pdf', url: '#', percorso: '', modificato: '2025-01-01' },

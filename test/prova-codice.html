@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Collaudo Codice.gs</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 16px; background: #fff6ee; color: #2b2633; }
+  li.ok::marker { content: '✅ '; } li.ko::marker { content: '❌ '; }
+  li.ko { color: #c0261d; font-weight: 700; }
+  #riassunto { font-size: 20px; font-weight: 800; }
+</style>
+</head>
+<body>
+<h1>Collaudo della parte Google (Codice.gs)</h1>
+<p>Finge i servizi di Google (Foglio, Drive, Calendario) e prova le funzioni dell'app. Non tocca niente di vero.</p>
+<div id="riassunto">In corso…</div>
+<ol id="esiti"></ol>
+<script>
+/* ================= Finti servizi Google ================= */
+let UTENTE = 'carmine@example.com';
+let seq = 0;
+const nuovoId = p => p + (++seq).toString(36) + 'xxxxxxxxxx';
+const iter = arr => { let i = 0; return { hasNext: () => i < arr.length, next: () => arr[i++] }; };
+
+function Props() { const d = {}; return { getProperty: k => (k in d ? d[k] : null), setProperty: (k, v) => { d[k] = String(v); } }; }
+const scriptProps = Props();
+const userProps = {};
+const PropertiesService = {
+  getScriptProperties: () => scriptProps,
+  getUserProperties: () => (userProps[UTENTE] = userProps[UTENTE] || Props())
+};
+const Session = {
+  getActiveUser: () => ({ getEmail: () => UTENTE }),
+  getEffectiveUser: () => ({ getEmail: () => UTENTE }),
+  getScriptTimeZone: () => 'Europe/Rome'
+};
+const LockService = { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) };
+const Logger = { log() {} };
+const MAIL = [];
+const MailApp = { sendEmail: o => MAIL.push(o) };
+const pad = n => String(n).padStart(2, '0');
+const Utilities = {
+  getUuid: () => Math.random().toString(16).slice(2) + Math.random().toString(16).slice(2),
+  base64Decode: s => atob(s),
+  newBlob: (b, mime, name) => ({ mime, name }),
+  formatDate: (d, tz, f) => f === 'HH:mm' ? pad(d.getHours()) + ':' + pad(d.getMinutes()) : d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate())
+};
+const TRIGGERS = {};
+const ScriptApp = {
+  getProjectTriggers: () => (TRIGGERS[UTENTE] || []),
+  deleteTrigger: t => { TRIGGERS[UTENTE] = (TRIGGERS[UTENTE] || []).filter(x => x !== t); },
+  newTrigger: fn => { const ch = { timeBased: () => ch, everyDays: () => ch, atHour: () => ch, create: () => { (TRIGGERS[UTENTE] = TRIGGERS[UTENTE] || []).push({ getHandlerFunction: () => fn }); } }; return ch; }
+};
+const HtmlService = {
+  XFrameOptionsMode: { ALLOWALL: 1 },
+  createHtmlOutputFromFile: f => pagina('APP:' + f), createHtmlOutput: h => pagina(h)
+};
+function pagina(c) { const p = { contenuto: c, setTitle: () => p, addMetaTag: () => p, setXFrameOptionsMode: () => p }; return p; }
+
+// ---- Drive: ogni elemento ha un proprietario e degli editor ----
+const DRIVE = {};
+function puoVedere(el) { return el.proprietario === UTENTE || el.editor.includes(UTENTE); }
+function elemento(tipo, nome, genitore) {
+  const el = { id: nuovoId(tipo === 'cartella' ? 'F' : 'D'), tipo, nome, genitori: genitore ? [genitore] : [], proprietario: UTENTE, editor: [], cestino: false, mime: 'application/pdf' };
+  DRIVE[el.id] = el; return el;
+}
+function vista(el) {
+  const v = {
+    getId: () => el.id, getName: () => el.nome, getUrl: () => 'https://drive/' + el.id, getMimeType: () => el.mime,
+    isTrashed: () => el.cestino, getLastUpdated: () => new Date(),
+    getParents: () => iter(el.genitori.map(id => vista(DRIVE[id]))),
+    addEditor: e => { if (el.proprietario !== UTENTE) throw new Error('solo il proprietario'); el.editor.push(e); },
+    removeEditor: e => { el.editor = el.editor.filter(x => x !== e); },
+    setTrashed: b => { if (el.proprietario !== UTENTE) throw new Error('Access denied'); el.cestino = b; },
+    moveTo: c => { el.genitori = [c.getId()]; },
+    makeCopy: (nome, cart) => { const c = elemento('file', nome, cart.getId()); c.mime = el.mime; return vista(c); },
+    getFoldersByName: n => iter(Object.values(DRIVE).filter(x => x.tipo === 'cartella' && x.nome === n && x.genitori.includes(el.id)).map(vista)),
+    createFolder: n => vista(elemento('cartella', n, el.id)),
+    createFile: b => vista(elemento('file', b.name, el.id)),
+    getFiles: () => iter(Object.values(DRIVE).filter(x => x.tipo === 'file' && x.genitori.includes(el.id)).map(vista)),
+    getFolders: () => iter(Object.values(DRIVE).filter(x => x.tipo === 'cartella' && x.genitori.includes(el.id)).map(vista))
+  };
+  return v;
+}
+// eredita i permessi dalla cartella madre (come Drive)
+function accessibile(el) { let x = el; while (x) { if (puoVedere(x)) return true; x = DRIVE[x.genitori[0]]; } return false; }
+const DriveApp = {
+  createFolder: n => vista(elemento('cartella', n, null)),
+  getFolderById: id => { const el = DRIVE[id]; if (!el || !accessibile(el)) throw new Error('Not found'); return vista(el); },
+  getFileById: id => { const el = DRIVE[id]; if (!el || !accessibile(el)) throw new Error('Not found'); return vista(el); }
+};
+
+// ---- Fogli ----
+function foglioFinto(nome) {
+  const ss = elemento('file', nome, null); ss.mime = 'sheet'; ss.fogli = { Foglio1: [] };
+  return ss;
+}
+function vistaSS(ss) {
+  const fg = n => {
+    const d = ss.fogli[n];
+    const range = (r, c, nr, nc) => ({
+      setValues: v => { for (let i = 0; i < nr; i++) { d[r - 1 + i] = d[r - 1 + i] || []; for (let j = 0; j < nc; j++) d[r - 1 + i][c - 1 + j] = v[i][j]; } return range(r, c, nr, nc); },
+      getDisplayValues: () => { const out = []; for (let i = 0; i < nr; i++) { const row = []; for (let j = 0; j < nc; j++) row.push(String(((d[r - 1 + i] || [])[c - 1 + j]) ?? '')); out.push(row); } return out; },
+      setFontWeight: () => range(r, c, nr, nc), setNumberFormat: () => range(r, c, nr, nc)
+    });
+    return {
+      getLastRow: () => d.length, getLastColumn: () => Math.max(0, ...d.map(x => x.length)),
+      getRange: (r, c, nr, nc) => typeof r === 'string' ? range(1, 1, 0, 0) : range(r, c, nr || 1, nc || 1),
+      setFrozenRows() {}, deleteRow: r => d.splice(r - 1, 1)
+    };
+  };
+  return {
+    getId: () => ss.id, getUrl: () => 'https://sheet/' + ss.id,
+    getSheetByName: n => ss.fogli[n] ? fg(n) : null,
+    insertSheet: n => { ss.fogli[n] = []; return fg(n); },
+    getSheets: () => Object.keys(ss.fogli), deleteSheet: () => { delete ss.fogli.Foglio1; }
+  };
+}
+const SpreadsheetApp = {
+  create: n => vistaSS(foglioFinto(n)),
+  openById: id => { const el = DRIVE[id]; if (!el || !accessibile(el)) throw new Error('Not found'); return vistaSS(el); }
+};
+
+// ---- Calendario ----
+const CAL = {};
+const iscritti = {};
+function calFinto(nome, prop) { const c = { id: nuovoId('C') + '@group', nome, proprietario: prop, condiviso: [], eventi: {} }; CAL[c.id] = c; return c; }
+function puoUsareCal(c) { return c.proprietario === UTENTE || c.condiviso.includes(UTENTE); }
+function vistaCal(c) {
+  const crea = (titolo, inizio, opz, serie) => {
+    const ev = { id: nuovoId('E'), titolo, inizio, serie: !!serie, tag: {}, reminder: [] };
+    c.eventi[ev.id] = ev;
+    return {
+      getId: () => ev.id, setTag: (k, v) => { ev.tag[k] = v; }, removeAllReminders: () => { ev.reminder = []; },
+      addPopupReminder: m => { if (m > 40320) throw new Error('promemoria troppo lungo'); ev.reminder.push(m); }
+    };
+  };
+  return {
+    getId: () => c.id, getName: () => c.nome, getColor: () => '#f00', isSelected: () => true, isHidden: () => false,
+    createAllDayEvent: (t, d, o) => crea(t, d, o), createEvent: (t, d, f, o) => crea(t, d, o),
+    createAllDayEventSeries: (t, d, r, o) => crea(t, d, o, true), createEventSeries: (t, d, f, r, o) => crea(t, d, o, true),
+    getEventSeriesById: id => c.eventi[id] ? { deleteEventSeries: () => { delete c.eventi[id]; } } : null,
+    getEventById: id => c.eventi[id] ? { deleteEvent: () => { delete c.eventi[id]; } } : null,
+    getEvents: () => []
+  };
+}
+const principali = {};
+const CalendarApp = {
+  Color: { RED: 'red' },
+  getCalendarById: id => { const c = CAL[id]; return c && (c.proprietario === UTENTE || (iscritti[UTENTE] || []).includes(id)) ? vistaCal(c) : null; },
+  subscribeToCalendar: id => { const c = CAL[id]; if (!c || !puoUsareCal(c)) throw new Error('no'); (iscritti[UTENTE] = iscritti[UTENTE] || []).push(id); return vistaCal(c); },
+  createCalendar: (n) => vistaCal(calFinto(n, UTENTE)),
+  getDefaultCalendar: () => { if (!principali[UTENTE]) principali[UTENTE] = calFinto(UTENTE, UTENTE); return vistaCal(principali[UTENTE]); },
+  getAllCalendars: () => Object.values(CAL).filter(puoUsareCal).map(vistaCal),
+  newRecurrence: () => { const r = { addWeeklyRule: () => r, addMonthlyRule: () => r, addYearlyRule: () => r, until: () => r }; return r; }
+};
+// Servizio avanzato "Google Calendar API" (attivato)
+const Calendar = { Acl: {
+  insert: (regola, idCal) => { CAL[idCal].condiviso.push(regola.scope.value); },
+  remove: (idCal, chi) => { CAL[idCal].condiviso = CAL[idCal].condiviso.filter(x => 'user:' + x !== chi); }
+} };
+
+/* ================= Le prove ================= */
+const esiti = [];
+function prova(nome, fn) {
+  try { const r = fn(); esiti.push([r === false ? 'ko' : 'ok', nome + (typeof r === 'string' ? ' — ' + r : '')]); }
+  catch (e) { esiti.push(['ko', nome + ' — ERRORE: ' + e.message]); }
+}
+const vero = (c, msg) => { if (!c) throw new Error(msg || 'condizione falsa'); };
+const lancia = (fn, testo) => { try { fn(); } catch (e) { if (testo && !String(e.message).includes(testo)) throw new Error('errore diverso: ' + e.message); return; } throw new Error('doveva dare errore'); };
+const eventiIn = id => Object.keys(CAL[id].eventi).length;
+
+fetch('../apps-script/Codice.gs').then(r => r.text()).then(codice => {
+  // Carico il codice come farebbe Google (funzioni globali)
+  (0, eval)(codice);
+
+  let idCal, idFoglio, idCartella, persone = {};
+  prova('Primo avvio: crea foglio, cartella e calendario', () => {
+    primoAvvio();
+    idFoglio = scriptProps.getProperty('foglioId'); idCartella = scriptProps.getProperty('cartellaId'); idCal = scriptProps.getProperty('calendarioId');
+    vero(idFoglio && idCartella && idCal, 'manca qualcosa');
+    vero(scriptProps.getProperty('proprietario') === 'carmine@example.com', 'proprietario sbagliato');
+    vero(DRIVE[idCartella].nome === 'Casa Santoro-Longobardi - Documenti', 'nome cartella: ' + DRIVE[idCartella].nome);
+    vero(CAL[idCal].nome === '🏠 Casa Santoro/Longobardi', 'nome calendario');
+    vero(DRIVE[idFoglio].genitori[0] === idCartella, 'il foglio non sta nella cartella');
+    return 'cartella "' + DRIVE[idCartella].nome + '"';
+  });
+  prova('La pagina si apre per il proprietario', () => vero(doGet().contenuto === 'APP:Index'));
+  prova('getTutto restituisce tutte le sezioni', () => {
+    const t = getTutto();
+    ['persone', 'documenti', 'impegni', 'spesa', 'progetti', 'numeri'].forEach(k => vero(Array.isArray(t[k]), k));
+    vero(t.io.proprietario === true && t.io.nome === 'Carmine', 'io: ' + JSON.stringify(t.io));
+  });
+  prova('Salvo le persone', () => {
+    persone.carmine = salva('Persone', { nome: 'Carmine', relazione: 'Io', email: 'carmine@example.com' }).obj;
+    persone.moglie = salva('Persone', { nome: 'Moglie', relazione: 'Moglie', email: 'moglie@example.com' }).obj;
+    vero(leggi_('Persone').length === 2);
+    vero(persone.moglie.accesso === '', 'accesso non deve essere dato salvando');
+  });
+  prova('Un "accesso" finto inviato dall\'app viene ignorato', () => {
+    const r = salva('Persone', Object.assign({}, persone.moglie, { accesso: 'si' }));
+    vero(r.obj.accesso === '', 'accesso concesso senza condividere!');
+  });
+  let doc;
+  prova('Documento con scadenza: 2 eventi nel calendario (scadenza + preavviso)', () => {
+    const tra = new Date(); tra.setDate(tra.getDate() + 100);
+    const s = tra.getFullYear() + '-' + pad(tra.getMonth() + 1) + '-' + pad(tra.getDate());
+    const r = salva('Documenti', { personaId: persone.moglie.id, tipo: "Carta d'identità", scadenza: s, preavviso: '60', files: '[]' });
+    vero(!r.avviso, r.avviso); doc = r.obj;
+    vero(String(doc.eventi).split(',').length === 2, 'eventi: ' + doc.eventi);
+    vero(eventiIn(idCal) === 2);
+  });
+  prova('Rimodifico il documento: i vecchi eventi spariscono, niente doppioni', () => {
+    doc = salva('Documenti', Object.assign({}, doc, { preavviso: '0' })).obj;
+    vero(eventiIn(idCal) === 1, 'eventi nel calendario: ' + eventiIn(idCal));
+  });
+  let imp;
+  prova('Impegno settimanale e impegno di un giorno', () => {
+    imp = salva('Impegni', { titolo: 'Preghiera', categoria: 'Chiesa', data: '2026-11-11', oraInizio: '20:30', oraFine: '22:00', tuttoIlGiorno: 'no', persone: persone.carmine.id + ',' + persone.moglie.id, ripeti: 'settimanale', promemoria: '10080' }).obj;
+    salva('Impegni', { titolo: 'Pediatra', categoria: 'Salute', data: '2026-11-12', tuttoIlGiorno: 'si', persone: '', ripeti: 'no', promemoria: '1440' });
+    vero(eventiIn(idCal) === 3, 'eventi: ' + eventiIn(idCal));
+  });
+  prova('Cambio nome a una persona: i titoli nel calendario si rifanno', () => {
+    salva('Persone', Object.assign({}, persone.moglie, { nome: 'Enza' }));
+    const titoli = Object.values(CAL[idCal].eventi).map(e => e.titolo).join(' | ');
+    vero(titoli.includes('Enza') && !titoli.includes('Moglie'), titoli);
+    vero(eventiIn(idCal) === 3, 'eventi: ' + eventiIn(idCal));
+    persone.moglie.nome = 'Enza';
+  });
+  prova('Progetto con data obiettivo va nel calendario; se "fatto" sparisce', () => {
+    const p = salva('Progetti', { titolo: 'Vacanza', stato: 'inCorso', dataObiettivo: '2027-06-01', passi: '[]' }).obj;
+    vero(eventiIn(idCal) === 4);
+    salva('Progetti', Object.assign({}, p, { stato: 'fatto' }));
+    vero(eventiIn(idCal) === 3, 'eventi: ' + eventiIn(idCal));
+  });
+  prova('Spesa: aggiungo, spunto, tolgo i presi', () => {
+    const a = salva('Spesa', { nome: 'Latte', reparto: 'Latticini e uova', preso: '' }).obj;
+    salva('Spesa', { nome: 'Pane', reparto: 'Pane e dolci', preso: 'si' });
+    vero(a.aggiuntoDa === 'Carmine', 'aggiuntoDa: ' + a.aggiuntoDa);
+    const rest = svuotaPresi();
+    vero(rest.length === 1 && rest[0].nome === 'Latte');
+  });
+  prova('Numeri utili: salvo ed elimino', () => {
+    const n = salva('Numeri', { nome: 'Idraulico', telefono: '3331234567' }).obj;
+    vero(leggi_('Numeri').length === 1); elimina('Numeri', n.id); vero(leggi_('Numeri').length === 0);
+  });
+
+  // --- sicurezza file ---
+  let esterno, cartellaEsterna;
+  prova('SICUREZZA: un file fuori dalla cartella dell\'app NON viene cestinato', () => {
+    cartellaEsterna = elemento('cartella', 'I miei documenti', null);
+    esterno = elemento('file', 'passaporto carmine.pdf', cartellaEsterna.id);
+    vero(cestinaFile(esterno.id) === false, 'ha risposto di averlo cestinato');
+    vero(esterno.cestino === false, 'IL FILE ESTERNO E\' STATO CESTINATO!');
+  });
+  prova('SICUREZZA: il foglio dei dati non si cestina', () => {
+    vero(cestinaFile(idFoglio) === false); vero(DRIVE[idFoglio].cestino === false);
+  });
+  prova('SICUREZZA: la ricerca in cartella legge e basta', () => {
+    const prima = JSON.stringify(DRIVE[esterno.id]);
+    const r = scansionaCartella('https://drive.google.com/drive/folders/' + cartellaEsterna.id);
+    vero(r.files.length === 1 && r.files[0].nome === 'passaporto carmine.pdf');
+    vero(JSON.stringify(DRIVE[esterno.id]) === prima, 'il file esterno e\' cambiato!');
+  });
+  prova('Copia da Drive: copia nella cartella dell\'app, originale intatto; la copia si puo\' cestinare', () => {
+    const prima = JSON.stringify(DRIVE[esterno.id]);
+    const c = copiaFileDrive(esterno.id, 'Carmine');
+    vero(JSON.stringify(DRIVE[esterno.id]) === prima, 'originale modificato');
+    vero(fileDellApp_(DriveApp.getFileById(c.id)), 'la copia non e\' nella cartella dell\'app');
+    vero(cestinaFile(c.id) === true && DRIVE[c.id].cestino === true, 'la copia non e\' stata cestinata');
+  });
+  prova('Elimino un documento con un file esterno collegato: l\'esterno resta', () => {
+    const d = salva('Documenti', { personaId: persone.carmine.id, tipo: 'Passaporto', files: JSON.stringify([{ id: esterno.id, nome: 'x' }]) }).obj;
+    elimina('Documenti', d.id);
+    vero(esterno.cestino === false, 'FILE ESTERNO CESTINATO');
+  });
+
+  // --- condivisione ---
+  prova('Un estraneo NON entra e NON crea dati nuovi', () => {
+    UTENTE = 'estraneo@example.com'; FOGLIO_CACHE_ = null;
+    vero(doGet().contenuto.includes('non ti conosco'), 'la pagina si e\' aperta!');
+    lancia(() => getTutto());
+    vero(scriptProps.getProperty('foglioId') === idFoglio, 'HA SOSTITUITO IL FOGLIO DEI DATI!');
+    vero(scriptProps.getProperty('cartellaId') === idCartella, 'ha sostituito la cartella!');
+    UTENTE = 'carmine@example.com'; FOGLIO_CACHE_ = null;
+  });
+  prova('La moglie prima della condivisione non entra', () => {
+    UTENTE = 'moglie@example.com'; FOGLIO_CACHE_ = null;
+    vero(doGet().contenuto.includes('non ti conosco'));
+    UTENTE = 'carmine@example.com'; FOGLIO_CACHE_ = null;
+  });
+  prova('Solo il proprietario puo\' condividere', () => {
+    UTENTE = 'moglie@example.com'; FOGLIO_CACHE_ = null;
+    lancia(() => condividiCon(persone.moglie.id), 'Solo');
+    UTENTE = 'carmine@example.com'; FOGLIO_CACHE_ = null;
+  });
+  prova('Condivido con la moglie: cartella, foglio e calendario', () => {
+    const r = condividiCon(persone.moglie.id);
+    vero(r.obj.accesso === 'si');
+    vero(DRIVE[idCartella].editor.includes('moglie@example.com'), 'cartella');
+    vero(DRIVE[idFoglio].editor.includes('moglie@example.com'), 'foglio');
+    vero(CAL[idCal].condiviso.includes('moglie@example.com'), 'calendario');
+    vero(!DRIVE[cartellaEsterna.id].editor.length, 'HA CONDIVISO UNA CARTELLA ESTERNA!');
+    return r.avvisi.length ? 'avvisi: ' + r.avvisi.join(' ') : 'nessun avviso';
+  });
+  prova('La moglie entra, vede tutto, la saluta col suo nome', () => {
+    UTENTE = 'moglie@example.com'; FOGLIO_CACHE_ = null;
+    vero(doGet().contenuto === 'APP:Index', 'non entra');
+    const t = getTutto();
+    vero(t.persone.length === 2 && t.impegni.length === 2, 'dati mancanti');
+    vero(t.io.nome === 'Enza' && t.io.proprietario === false, JSON.stringify(t.io));
+  });
+  prova('La moglie aggiunge alla spesa e un impegno (che va nel calendario di casa)', () => {
+    const s = salva('Spesa', { nome: 'Uova', reparto: 'Latticini e uova', preso: '' }).obj;
+    vero(s.aggiuntoDa === 'Enza', 'aggiuntoDa: ' + s.aggiuntoDa);
+    const prima = eventiIn(idCal);
+    const r = salva('Impegni', { titolo: 'Colloqui scuola', categoria: 'Scuola', data: '2026-12-01', oraInizio: '17:00', tuttoIlGiorno: 'no', ripeti: 'no' });
+    vero(!r.avviso, r.avviso);
+    vero(eventiIn(idCal) === prima + 1, 'evento non creato nel calendario di casa');
+  });
+  prova('La moglie attiva le SUE email, non quelle di Carmine', () => {
+    salvaImpostazioni({ email: true, nome: 'Enza' });
+    vero((TRIGGERS['moglie@example.com'] || []).length === 1);
+    vero(!(TRIGGERS['carmine@example.com'] || []).length, 'ha attivato quelle di Carmine');
+  });
+  prova('Email del mattino: parte con le cose in scadenza', () => {
+    const domani = new Date(); domani.setDate(domani.getDate() + 1);
+    salva('Documenti', { personaId: persone.moglie.id, tipo: 'Patente', scadenza: domani.getFullYear() + '-' + pad(domani.getMonth() + 1) + '-' + pad(domani.getDate()), preavviso: '30', files: '[]' });
+    MAIL.length = 0; controlloGiornaliero();
+    vero(MAIL.length === 1 && MAIL[0].body.includes('Domani scade Patente di Enza'), JSON.stringify(MAIL[0] || {}));
+    vero(MAIL[0].body.startsWith('Ciao Enza'), MAIL[0].body.slice(0, 30));
+  });
+  prova('La moglie non puo\' togliere la condivisione', () => {
+    lancia(() => togliCondivisione(persone.moglie.id), 'Solo');
+    UTENTE = 'carmine@example.com'; FOGLIO_CACHE_ = null;
+  });
+  prova('Non si elimina una persona finche\' ha l\'accesso', () => lancia(() => elimina('Persone', persone.moglie.id), 'condivisione'));
+  prova('Tolgo l\'accesso: la moglie non entra piu\', i dati restano', () => {
+    togliCondivisione(persone.moglie.id);
+    vero(!DRIVE[idCartella].editor.includes('moglie@example.com'));
+    vero(!CAL[idCal].condiviso.includes('moglie@example.com'));
+    UTENTE = 'moglie@example.com'; FOGLIO_CACHE_ = null;
+    vero(doGet().contenuto.includes('non ti conosco'), 'entra ancora');
+    UTENTE = 'carmine@example.com'; FOGLIO_CACHE_ = null;
+    vero(getTutto().spesa.length === 2, 'dati persi');
+  });
+  prova('Cambio calendario (principale) e tutto viene spostato', () => {
+    const r = salvaImpostazioni({ calendario: 'principale' });
+    vero(r.spostati > 0, 'spostati: ' + r.spostati);
+    vero(eventiIn(idCal) === 0, 'nel calendario di casa ne restano ' + eventiIn(idCal));
+    vero(Object.keys(principali['carmine@example.com'].eventi).length > 0, 'nessun evento nel principale');
+    salvaImpostazioni({ calendario: 'dedicato' });
+    vero(Object.keys(principali['carmine@example.com'].eventi).length === 0, 'restano doppioni nel principale');
+    return r.spostati + ' cose spostate e riportate';
+  });
+
+  const ko = esiti.filter(e => e[0] === 'ko').length;
+  document.getElementById('riassunto').textContent = ko ? '❌ ' + ko + ' prove fallite su ' + esiti.length : '✅ Tutte le ' + esiti.length + ' prove superate';
+  document.getElementById('esiti').innerHTML = esiti.map(e => `<li class="${e[0]}">${e[1].replace(/</g, '&lt;')}</li>`).join('');
+  window.ESITO = { ko, totale: esiti.length, falliti: esiti.filter(e => e[0] === 'ko').map(e => e[1]) };
+}).catch(e => { document.getElementById('riassunto').textContent = 'Errore nel caricare: ' + e.message; window.ESITO = { errore: e.message }; });
+</script>
+</body>
+</html>

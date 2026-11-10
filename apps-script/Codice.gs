@@ -1,34 +1,72 @@
 /**
- * Casa Santoro - documenti, scadenze e impegni di famiglia.
+ * Casa Santoro/Longobardi - documenti, scadenze, impegni, spesa, progetti e numeri utili di famiglia.
  * Parte "Google" dell'app: salva i dati in un Foglio Google,
- * i file in una cartella di Drive e mette tutto nel Google Calendar.
+ * i file in una cartella di Drive e mette scadenze e impegni nel Google Calendar.
  *
- * Il foglio, la cartella e il calendario si creano da soli al primo avvio.
+ * Il foglio, la cartella e il calendario si creano da soli al primo avvio (funzione primoAvvio).
+ * L'app si puo' condividere con altre persone di famiglia (es. la moglie): vedi condividiCon().
+ *
+ * REGOLA DI SICUREZZA: l'app crea, modifica e cancella file SOLO dentro la sua cartella.
+ * Le altre cartelle (Drive, PC, chiavette) le legge soltanto; se serve, copia i file nella sua cartella.
  */
 
-var NOME_APP = 'Casa Santoro';
+var NOME_APP = 'Casa Santoro/Longobardi';
 var TAG_EVENTO = 'casaSantoro';
 
 var CAMPI = {
-  Persone:   ['id', 'nome', 'relazione', 'nascita', 'colore', 'emoji', 'note', 'cognome', 'altriNomi', 'codiceFiscale'],
+  Persone:   ['id', 'nome', 'relazione', 'nascita', 'colore', 'emoji', 'note', 'cognome', 'altriNomi', 'codiceFiscale', 'email', 'accesso'],
   Documenti: ['id', 'personaId', 'tipo', 'numero', 'rilascio', 'scadenza', 'preavviso', 'note', 'files', 'eventi', 'aggiornato'],
   Ignorati:  ['id', 'nome'],
-  Impegni:   ['id', 'titolo', 'categoria', 'data', 'oraInizio', 'oraFine', 'tuttoIlGiorno', 'persone', 'luogo', 'note', 'ripeti', 'ripetiFino', 'promemoria', 'eventi', 'aggiornato']
+  Impegni:   ['id', 'titolo', 'categoria', 'data', 'oraInizio', 'oraFine', 'tuttoIlGiorno', 'persone', 'luogo', 'note', 'ripeti', 'ripetiFino', 'promemoria', 'eventi', 'aggiornato'],
+  Spesa:     ['id', 'nome', 'quantita', 'reparto', 'preso', 'aggiuntoDa', 'aggiornato'],
+  Progetti:  ['id', 'titolo', 'descrizione', 'categoria', 'priorita', 'stato', 'costo', 'messoDaParte', 'dataObiettivo', 'persone', 'passi', 'note', 'eventi', 'aggiornato'],
+  Numeri:    ['id', 'nome', 'categoria', 'telefono', 'telefono2', 'email', 'indirizzo', 'note', 'preferito']
 };
 
+// Impostazioni comuni a tutta la famiglia (il nome e l'email di promemoria invece sono di ciascuno)
 var IMPOSTAZIONI_BASE = {
-  nome: 'Carmine',
-  calendario: 'dedicato',   // 'dedicato' = calendario "Casa Santoro", 'principale' = il tuo calendario di sempre, 'altro' = calendario condiviso da un altro account
+  calendario: 'dedicato',   // 'dedicato' = calendario "Casa Santoro/Longobardi", 'principale' = il calendario principale del proprietario, 'altro' = calendario condiviso da un altro account
+  calendarioPrincipale: '',
+  calendarioAltro: '',
   preavviso: 30,
   mostraGoogle: true,
-  email: false,
-  cartellaScansione: '',
-  calendarioAltro: ''
+  cartellaScansione: ''
 };
+
+/* ---------------- Chi sta usando l'app ---------------- */
+
+function props_() { return PropertiesService.getScriptProperties(); }
+function utente_() { return String(Session.getActiveUser().getEmail() || Session.getEffectiveUser().getEmail() || '').toLowerCase(); }
+function proprietario_() { return String(props_().getProperty('proprietario') || '').toLowerCase(); }
+function sonoProprietario_() { var p = proprietario_(); return !p || p === utente_(); }
+
+/** Vero se chi apre l'app e' il proprietario o una persona di famiglia con cui l'app e' condivisa. */
+function puoEntrare_() {
+  if (sonoProprietario_()) return true;
+  var io = utente_();
+  try {
+    return leggi_('Persone').some(function (p) { return p.accesso === 'si' && String(p.email).toLowerCase() === io; });
+  } catch (e) { return false; }
+}
+function controllo_() {
+  if (!puoEntrare_()) throw new Error('Questo account (' + utente_() + ') non e\' tra quelli di casa. Chiedi di condividere l\'app con te.');
+}
 
 /* ---------------- Pagina ---------------- */
 
 function doGet() {
+  if (!puoEntrare_()) {
+    var io = utente_() || 'questo account';
+    return HtmlService.createHtmlOutput(
+      '<div style="font-family:system-ui,sans-serif;text-align:center;padding:40px 16px;color:#2b2633;background:#fff6ee;min-height:100vh;box-sizing:border-box">' +
+      '<div style="font-size:56px">🏠🔒</div><h2>Ehi, non ti conosco ancora!</h2>' +
+      '<p>Sei entrato come <b>' + io + '</b>, che non è tra gli account di casa.</p>' +
+      '<p>Chiedi di aggiungerti: nell\'app, in <b>Famiglia</b>, apri la tua scheda, scrivi questa email e premi <b>🤝 Condividi l\'app</b>.</p>' +
+      '<p style="color:#8a8194">Se hai più account Google sul telefono, controlla di essere entrato con quello giusto.</p></div>')
+      .setTitle(NOME_APP)
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
   return HtmlService.createHtmlOutputFromFile('Index')
     .setTitle(NOME_APP)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover')
@@ -37,8 +75,7 @@ function doGet() {
 
 /* ---------------- Foglio, cartella, calendario ---------------- */
 
-function props_() { return PropertiesService.getScriptProperties(); }
-
+var NON_CONDIVISO = 'Non riesco ad aprire i dati di casa con questo account: chiedi di condividere l\'app con te (Famiglia → la tua scheda → 🤝 Condividi l\'app).';
 var FOGLIO_CACHE_ = null;
 
 function foglio_() {
@@ -47,8 +84,11 @@ function foglio_() {
   var ss = null;
   if (id) { try { ss = SpreadsheetApp.openById(id); } catch (e) { ss = null; } }
   if (!ss) {
+    // Solo il proprietario puo' creare un foglio nuovo: chi e' ospite non deve mai "sostituire" i dati
+    if (id && !sonoProprietario_()) throw new Error(NON_CONDIVISO);
     ss = SpreadsheetApp.create(NOME_APP + ' - dati (non modificare a mano)');
     props_().setProperty('foglioId', ss.getId());
+    if (!proprietario_()) props_().setProperty('proprietario', utente_());
     try { DriveApp.getFileById(ss.getId()).moveTo(cartella_()); } catch (e) {}
   }
   Object.keys(CAMPI).forEach(function (nome) {
@@ -71,9 +111,13 @@ function foglio_() {
 
 function cartella_() {
   var id = props_().getProperty('cartellaId');
-  if (id) { try { var c = DriveApp.getFolderById(id); if (!c.isTrashed()) return c; } catch (e) {} }
-  var nuova = DriveApp.createFolder(NOME_APP + ' - Documenti');
+  if (id) {
+    try { var c = DriveApp.getFolderById(id); if (!c.isTrashed()) return c; } catch (e) {}
+    if (!sonoProprietario_()) throw new Error(NON_CONDIVISO);
+  }
+  var nuova = DriveApp.createFolder(NOME_APP.replace('/', '-') + ' - Documenti');
   props_().setProperty('cartellaId', nuova.getId());
+  if (!proprietario_()) props_().setProperty('proprietario', utente_());
   return nuova;
 }
 
@@ -84,20 +128,35 @@ function cartellaPersona_(nome) {
   return it.hasNext() ? it.next() : base.createFolder(nomeCartella);
 }
 
+/** Apre un calendario per ID; se e' condiviso ma non ancora "aggiunto" all'account, lo aggiunge. */
+function apriCal_(id) {
+  if (!id) return null;
+  var c = CalendarApp.getCalendarById(id);
+  if (!c) { try { c = CalendarApp.subscribeToCalendar(id); } catch (e) { c = null; } }
+  return c;
+}
+
 function calendario_() {
   var imp = leggiImpostazioni_();
-  if (imp.calendario === 'principale') return CalendarApp.getDefaultCalendar();
+  if (imp.calendario === 'principale') {
+    var idP = imp.calendarioPrincipale || (sonoProprietario_() ? CalendarApp.getDefaultCalendar().getId() : '');
+    var princ = apriCal_(idP);
+    if (!princ) throw new Error('Non posso scrivere nel calendario principale di ' + proprietario_() + ' con questo account.');
+    return princ;
+  }
   if (imp.calendario === 'altro') {
-    // Calendario di un altro account, condiviso con questo con il permesso "Apportare modifiche agli eventi"
-    var altro = CalendarApp.getCalendarById(imp.calendarioAltro);
-    if (!altro) { try { altro = CalendarApp.subscribeToCalendar(imp.calendarioAltro); } catch (e) {} }
-    if (!altro) throw new Error('Non vedo il calendario "' + imp.calendarioAltro + '": va condiviso con ' + Session.getEffectiveUser().getEmail() + ' con il permesso di modificare gli eventi.');
+    var altro = apriCal_(imp.calendarioAltro);
+    if (!altro) throw new Error('Non vedo il calendario "' + imp.calendarioAltro + '": va condiviso con ' + utente_() + ' con il permesso di modificare gli eventi.');
     return altro;
   }
   var id = props_().getProperty('calendarioId');
-  if (id) { var c = CalendarApp.getCalendarById(id); if (c) return c; }
+  if (id) {
+    var c = apriCal_(id);
+    if (c) return c;
+    if (!sonoProprietario_()) throw new Error('Non vedo il calendario di casa: va condiviso con ' + utente_() + '.');
+  }
   var cal = CalendarApp.createCalendar('🏠 ' + NOME_APP, {
-    summary: 'Scadenze e impegni di famiglia (dall\'app ' + NOME_APP + ')',
+    summary: 'Scadenze, impegni e progetti di famiglia (dall\'app ' + NOME_APP + ')',
     color: CalendarApp.Color.RED
   });
   props_().setProperty('calendarioId', cal.getId());
@@ -148,30 +207,53 @@ function leggiImpostazioni_() {
   var s = props_().getProperty('impostazioni');
   var imp = {};
   Object.keys(IMPOSTAZIONI_BASE).forEach(function (k) { imp[k] = IMPOSTAZIONI_BASE[k]; });
-  if (s) { try { var o = JSON.parse(s); Object.keys(o).forEach(function (k) { imp[k] = o[k]; }); } catch (e) {} }
+  if (s) { try { var o = JSON.parse(s); Object.keys(o).forEach(function (k) { if (k in IMPOSTAZIONI_BASE) imp[k] = o[k]; }); } catch (e) {} }
   return imp;
+}
+
+/** Il nome con cui l'app saluta chi la sta usando. */
+function nomeUtente_() {
+  var n = PropertiesService.getUserProperties().getProperty('nome');
+  if (n) return n;
+  var io = utente_();
+  var p = leggi_('Persone').filter(function (x) { return x.email && String(x.email).toLowerCase() === io; })[0];
+  if (p) return p.nome;
+  return sonoProprietario_() ? 'Carmine' : '';
+}
+
+function emailAttiva_() {
+  return ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'controlloGiornaliero'; });
 }
 
 /* ---------------- Funzioni chiamate dall'app ---------------- */
 
 function getTutto() {
-  var imp = leggiImpostazioni_();
-  imp.emailAttiva = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'controlloGiornaliero'; });
+  controllo_();
   return {
     persone: leggi_('Persone'),
     documenti: leggi_('Documenti'),
     impegni: leggi_('Impegni'),
+    spesa: leggi_('Spesa'),
+    progetti: leggi_('Progetti'),
+    numeri: leggi_('Numeri'),
     ignorati: leggi_('Ignorati').map(function (x) { return x.id; }),
-    impostazioni: imp,
-    link: {
-      cartella: cartella_().getUrl(),
-      foglio: foglio_().getUrl()
-    },
-    email: Session.getEffectiveUser().getEmail()
+    impostazioni: leggiImpostazioni_(),
+    link: { cartella: cartella_().getUrl(), foglio: foglio_().getUrl() },
+    io: { email: utente_(), nome: nomeUtente_(), proprietario: sonoProprietario_(), emailAttiva: emailAttiva_(), proprietarioEmail: proprietario_() }
   };
 }
 
+/** Rilegge una sola sezione (es. la spesa, che magari ha appena cambiato tua moglie). */
+function leggiSezione(tipo) {
+  controllo_();
+  if (!CAMPI[tipo]) throw new Error('Sezione sconosciuta: ' + tipo);
+  return leggi_(tipo);
+}
+
+var CON_CALENDARIO = { Documenti: true, Impegni: true, Progetti: true };
+
 function salva(tipo, obj) {
+  controllo_();
   if (!CAMPI[tipo]) throw new Error('Tipo sconosciuto: ' + tipo);
   if (!obj.id) obj.id = Utilities.getUuid().slice(0, 8);
   var avviso = '';
@@ -180,20 +262,26 @@ function salva(tipo, obj) {
   try {
     if (tipo === 'Persone') {
       var prima = leggi_('Persone').filter(function (x) { return x.id === obj.id; })[0];
+      // l'accesso all'app si cambia solo con condividiCon / togliCondivisione
+      obj.accesso = prima ? prima.accesso : '';
+      if (prima && prima.accesso === 'si' && String(prima.email).toLowerCase() !== String(obj.email).toLowerCase()) {
+        obj.email = prima.email;
+        avviso = 'L\'email non l\'ho cambiata perché l\'app è condivisa con quell\'indirizzo: togli prima la condivisione.';
+      }
       scrivi_(tipo, obj);
-      // Se cambi il nome, aggiorno anche i titoli nel calendario
-      if (prima && prima.nome !== obj.nome) aggiornaEventiPersona_(obj.id);
-      return { obj: obj, avviso: '' };
+      if (prima && prima.nome !== obj.nome) aggiornaEventiPersona_(obj.id); // aggiorno i titoli nel calendario
+      return { obj: obj, avviso: avviso };
     }
-    if (tipo === 'Documenti' || tipo === 'Impegni') {
+    if (tipo === 'Spesa') {
+      if (!obj.aggiuntoDa) obj.aggiuntoDa = nomeUtente_();
+      obj.aggiornato = new Date().toISOString();
+    }
+    if (CON_CALENDARIO[tipo]) {
       var vecchio = leggi_(tipo).filter(function (x) { return x.id === obj.id; })[0];
       if (vecchio) cancellaEventi_(vecchio.eventi);
       obj.eventi = '';
-      try {
-        obj.eventi = tipo === 'Documenti' ? eventiDocumento_(obj) : eventiImpegno_(obj);
-      } catch (e) {
-        avviso = 'Salvato, ma il calendario non ha risposto: ' + e.message;
-      }
+      try { obj.eventi = creaEventi_(tipo, obj); }
+      catch (e) { avviso = 'Salvato, ma il calendario non ha risposto: ' + e.message; }
       obj.aggiornato = new Date().toISOString();
     }
     scrivi_(tipo, obj);
@@ -204,8 +292,10 @@ function salva(tipo, obj) {
 }
 
 function elimina(tipo, id) {
+  controllo_();
   var vecchio = leggi_(tipo).filter(function (x) { return x.id === id; })[0];
   if (!vecchio) return true;
+  if (tipo === 'Persone' && vecchio.accesso === 'si') throw new Error('Prima togli la condivisione dell\'app con questa persona.');
   if (vecchio.eventi) cancellaEventi_(vecchio.eventi);
   if (tipo === 'Documenti' && vecchio.files) {
     JSON.parse(vecchio.files || '[]').forEach(function (f) { cestinaFile(f.id); });
@@ -214,8 +304,20 @@ function elimina(tipo, id) {
   return true;
 }
 
+/** Lista della spesa: toglie tutte le cose gia' prese. */
+function svuotaPresi() {
+  controllo_();
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    leggi_('Spesa').filter(function (x) { return x.preso === 'si'; }).forEach(function (x) { cancellaRiga_('Spesa', x.id); });
+  } finally { lock.releaseLock(); }
+  return leggi_('Spesa');
+}
+
 /** Riceve un file (foto o PDF) in base64 e lo salva nella cartella della persona. */
 function caricaFile(nomePersona, nomeFile, mime, base64) {
+  controllo_();
   var blob = Utilities.newBlob(Utilities.base64Decode(base64), mime || 'application/octet-stream', nomeFile);
   var file = cartellaPersona_(nomePersona).createFile(blob);
   return { id: file.getId(), nome: file.getName(), mime: file.getMimeType(), url: file.getUrl() };
@@ -226,12 +328,13 @@ function caricaFile(nomePersona, nomeFile, mime, base64) {
  * L'originale non viene ne' spostato, ne' rinominato, ne' modificato.
  */
 function copiaFileDrive(fileId, nomePersona) {
+  controllo_();
   var originale = DriveApp.getFileById(fileId);
   var copia = originale.makeCopy(originale.getName(), cartellaPersona_(nomePersona));
   return { id: copia.getId(), nome: copia.getName(), mime: copia.getMimeType(), url: copia.getUrl() };
 }
 
-/** Vero solo se il file sta dentro la cartella "Casa Santoro - Documenti" (o in una sua sottocartella). */
+/** Vero solo se il file sta dentro la cartella dell'app (o in una sua sottocartella). */
 function fileDellApp_(file) {
   var idApp = cartella_().getId();
   var daGuardare = [], visti = {};
@@ -254,12 +357,66 @@ function fileDellApp_(file) {
  */
 function cestinaFile(fileId) {
   try {
+    controllo_();
     if (fileId === props_().getProperty('foglioId')) return false; // il foglio dei dati non si tocca
     var f = DriveApp.getFileById(fileId);
     if (!fileDellApp_(f)) return false;
     f.setTrashed(true);
   } catch (e) { return false; }
   return true;
+}
+
+/* ---------------- Condivisione con la famiglia ---------------- */
+
+/**
+ * Condivide l'app con una persona di famiglia (serve la sua email Google):
+ * le da' accesso al foglio dei dati, alla cartella dei documenti e al calendario di casa.
+ * Tocca SOLO i permessi della cartella e del foglio dell'app, nient'altro.
+ */
+function condividiCon(personaId) {
+  if (!sonoProprietario_()) throw new Error('Solo ' + proprietario_() + ' può condividere l\'app.');
+  var p = leggi_('Persone').filter(function (x) { return x.id === personaId; })[0];
+  if (!p) throw new Error('Persona non trovata');
+  var email = String(p.email || '').trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error('Scrivi prima la sua email Google nella scheda e salva.');
+  if (email === utente_()) throw new Error('Questa è la tua email: l\'app è già tua 🙂');
+  var avvisi = [];
+  cartella_().addEditor(email);
+  DriveApp.getFileById(props_().getProperty('foglioId')).addEditor(email);
+  var imp = leggiImpostazioni_();
+  if (imp.calendario === 'dedicato') {
+    var esito = condividiCalendario_(calendario_().getId(), email, true);
+    if (!esito) avvisi.push('Il calendario "🏠 ' + NOME_APP + '" condividilo tu da Google Calendar (Impostazioni del calendario → Condividi con persone specifiche → ' + email + ' → "Apportare modifiche agli eventi").');
+  } else {
+    avvisi.push('Gli eventi vanno nel tuo calendario ' + (imp.calendario === 'principale' ? 'principale' : 'scelto') + ': se vuoi che li veda anche lei, condividilo tu da Google Calendar.');
+  }
+  p.accesso = 'si';
+  scrivi_('Persone', p);
+  return { obj: p, avvisi: avvisi };
+}
+
+function togliCondivisione(personaId) {
+  if (!sonoProprietario_()) throw new Error('Solo ' + proprietario_() + ' può farlo.');
+  var p = leggi_('Persone').filter(function (x) { return x.id === personaId; })[0];
+  if (!p) throw new Error('Persona non trovata');
+  var email = String(p.email || '').trim().toLowerCase();
+  try { cartella_().removeEditor(email); } catch (e) {}
+  try { DriveApp.getFileById(props_().getProperty('foglioId')).removeEditor(email); } catch (e) {}
+  var idCal = props_().getProperty('calendarioId');
+  if (idCal) condividiCalendario_(idCal, email, false);
+  p.accesso = '';
+  scrivi_('Persone', p);
+  return { obj: p, avvisi: [] };
+}
+
+/** Usa il servizio avanzato "Google Calendar API" se e' stato attivato nell'editor; altrimenti restituisce false. */
+function condividiCalendario_(idCal, email, aggiungi) {
+  if (typeof Calendar === 'undefined') return false;
+  try {
+    if (aggiungi) Calendar.Acl.insert({ role: 'writer', scope: { type: 'user', value: email } }, idCal);
+    else Calendar.Acl.remove(idCal, 'user:' + email);
+    return true;
+  } catch (e) { return false; }
 }
 
 /* ---------------- Cerca documenti in una cartella (SOLO LETTURA) ---------------- */
@@ -269,6 +426,7 @@ function cestinaFile(fileId) {
  * Legge soltanto nomi e date: non apre, non sposta, non rinomina e non cancella nulla.
  */
 function scansionaCartella(link) {
+  controllo_();
   var testo = String(link || '').trim();
   var m = testo.match(/folders\/([\w-]{10,})/) || testo.match(/[?&]id=([\w-]{10,})/) || testo.match(/^([\w-]{10,})$/);
   if (!m) throw new Error('Non riconosco il link della cartella. Aprila in Drive e copia l\'indirizzo dalla barra in alto.');
@@ -306,31 +464,43 @@ function scansionaCartella(link) {
 }
 
 /** "Non mi interessa": la lista sta solo nel foglio dell'app, il file non viene toccato. */
-function ignoraFile(id, nome) { scrivi_('Ignorati', { id: id, nome: nome }); return true; }
+function ignoraFile(id, nome) { controllo_(); scrivi_('Ignorati', { id: id, nome: nome }); return true; }
 function ripristinaIgnorati() {
+  controllo_();
   leggi_('Ignorati').forEach(function (x) { cancellaRiga_('Ignorati', x.id); });
   return true;
 }
 
+/* ---------------- Impostazioni ---------------- */
+
 function salvaImpostazioni(nuove) {
+  controllo_();
   var imp = leggiImpostazioni_();
   var calPrima = imp.calendario;
   Object.keys(IMPOSTAZIONI_BASE).forEach(function (k) { if (nuove[k] !== undefined) imp[k] = nuove[k]; });
+  if (imp.calendario === 'principale' && !imp.calendarioPrincipale && sonoProprietario_()) {
+    imp.calendarioPrincipale = CalendarApp.getDefaultCalendar().getId();
+  }
   props_().setProperty('impostazioni', JSON.stringify(imp));
-  impostaEmail_(!!imp.email);
+  // nome ed email di promemoria: ognuno i suoi
+  if (nuove.nome !== undefined) PropertiesService.getUserProperties().setProperty('nome', String(nuove.nome || ''));
+  if (nuove.email !== undefined) impostaEmail_(!!nuove.email);
   var spostati = 0;
   if (calPrima !== imp.calendario) spostati = sincronizzaTutto();
-  imp.emailAttiva = !!imp.email;
-  return { impostazioni: imp, spostati: spostati };
+  return {
+    impostazioni: imp, spostati: spostati,
+    io: { email: utente_(), nome: nomeUtente_(), proprietario: sonoProprietario_(), emailAttiva: emailAttiva_(), proprietarioEmail: proprietario_() }
+  };
 }
 
 /** Cancella e ricrea tutti gli eventi dell'app nel calendario scelto. */
 function sincronizzaTutto() {
+  controllo_();
   var n = 0;
-  ['Documenti', 'Impegni'].forEach(function (tipo) {
+  Object.keys(CON_CALENDARIO).forEach(function (tipo) {
     leggi_(tipo).forEach(function (o) {
       cancellaEventi_(o.eventi);
-      try { o.eventi = tipo === 'Documenti' ? eventiDocumento_(o) : eventiImpegno_(o); } catch (e) { o.eventi = ''; }
+      try { o.eventi = creaEventi_(tipo, o); } catch (e) { o.eventi = ''; }
       scrivi_(tipo, o);
       n++;
     });
@@ -339,22 +509,20 @@ function sincronizzaTutto() {
 }
 
 function aggiornaEventiPersona_(personaId) {
-  leggi_('Documenti').forEach(function (d) {
-    if (d.personaId !== personaId) return;
-    cancellaEventi_(d.eventi);
-    try { d.eventi = eventiDocumento_(d); } catch (e) { d.eventi = ''; }
-    scrivi_('Documenti', d);
-  });
-  leggi_('Impegni').forEach(function (o) {
-    if (String(o.persone || '').split(',').indexOf(personaId) < 0) return;
-    cancellaEventi_(o.eventi);
-    try { o.eventi = eventiImpegno_(o); } catch (e) { o.eventi = ''; }
-    scrivi_('Impegni', o);
+  Object.keys(CON_CALENDARIO).forEach(function (tipo) {
+    leggi_(tipo).forEach(function (o) {
+      var coinvolto = tipo === 'Documenti' ? o.personaId === personaId : String(o.persone || '').split(',').indexOf(personaId) >= 0;
+      if (!coinvolto) return;
+      cancellaEventi_(o.eventi);
+      try { o.eventi = creaEventi_(tipo, o); } catch (e) { o.eventi = ''; }
+      scrivi_(tipo, o);
+    });
   });
 }
 
-/** Eventi del tuo Google Calendar (tutti i calendari visibili), per vederli anche nell'app. */
+/** Eventi del Google Calendar di chi sta usando l'app (tutti i suoi calendari visibili). */
 function eventiGoogle(daISO, aISO) {
+  controllo_();
   var da = dataDa_(daISO), a = dataDa_(aISO);
   a.setDate(a.getDate() + 1);
   var idApp = props_().getProperty('calendarioId');
@@ -401,6 +569,13 @@ function nomePersona_(id) {
 function itData_(iso) {
   var p = String(iso).split('-');
   return p[2] + '/' + p[1] + '/' + p[0];
+}
+
+function creaEventi_(tipo, o) {
+  if (tipo === 'Documenti') return eventiDocumento_(o);
+  if (tipo === 'Impegni') return eventiImpegno_(o);
+  if (tipo === 'Progetti') return eventiProgetto_(o);
+  return '';
 }
 
 function eventiDocumento_(d) {
@@ -478,11 +653,23 @@ function eventiImpegno_(o) {
   return cal.getId() + '::' + ev.getId();
 }
 
+function eventiProgetto_(p) {
+  if (!p.dataObiettivo || p.stato === 'fatto') return '';
+  var cal = calendario_();
+  var ev = cal.createAllDayEvent('🎯 Obiettivo: ' + p.titolo, dataDa_(p.dataObiettivo), {
+    description: (p.descrizione ? p.descrizione + '\n\n' : '') + '(Progetto dall\'app ' + NOME_APP + ')'
+  });
+  ev.setTag(TAG_EVENTO, p.id);
+  ev.removeAllReminders();
+  ev.addPopupReminder(60 * 24 * 7);
+  return cal.getId() + '::' + ev.getId();
+}
+
 function cancellaEventi_(eventi) {
   if (!eventi) return;
   String(eventi).split(',').filter(String).forEach(function (coppia) {
     var parti = coppia.split('::');
-    var cal = CalendarApp.getCalendarById(parti[0]);
+    var cal = apriCal_(parti[0]);
     if (!cal) return;
     try {
       var serie = cal.getEventSeriesById(parti[1]);
@@ -495,7 +682,7 @@ function cancellaEventi_(eventi) {
   });
 }
 
-/* ---------------- Email di promemoria ---------------- */
+/* ---------------- Email di promemoria (ognuno attiva la sua) ---------------- */
 
 function impostaEmail_(attiva) {
   ScriptApp.getProjectTriggers().forEach(function (t) {
@@ -504,11 +691,10 @@ function impostaEmail_(attiva) {
   if (attiva) ScriptApp.newTrigger('controlloGiornaliero').timeBased().everyDays(1).atHour(8).create();
 }
 
-/** Ogni mattina: se qualcosa sta per scadere (o c'e' un impegno domani) ti arriva una email. */
+/** Ogni mattina: se qualcosa sta per scadere (o c'e' un impegno domani) arriva una email. */
 function controlloGiornaliero() {
   var oggi = new Date(); oggi.setHours(0, 0, 0, 0);
   var tz = Session.getScriptTimeZone();
-  var imp = leggiImpostazioni_();
   var righe = [];
   leggi_('Documenti').forEach(function (d) {
     if (!d.scadenza) return;
@@ -525,18 +711,24 @@ function controlloGiornaliero() {
   leggi_('Impegni').forEach(function (o) {
     if (o.data === sDomani) righe.push('📌 Domani: ' + o.titolo + (o.oraInizio ? ' alle ' + o.oraInizio : ''));
   });
+  leggi_('Progetti').forEach(function (p) {
+    if (p.dataObiettivo && p.stato !== 'fatto' && Math.round((dataDa_(p.dataObiettivo) - oggi) / 86400000) === 7)
+      righe.push('🎯 Tra una settimana: obiettivo "' + p.titolo + '"');
+  });
   if (!righe.length) return;
+  var nome = nomeUtente_();
   MailApp.sendEmail({
     to: Session.getEffectiveUser().getEmail(),
     subject: '🏠 ' + NOME_APP + ': ' + righe.length + (righe.length === 1 ? ' cosa' : ' cose') + ' da ricordare',
-    body: 'Ciao ' + imp.nome + '! 👋\n\nPromemoria di oggi:\n\n' + righe.join('\n') + '\n\nUn abbraccio,\nla tua app ' + NOME_APP
+    body: 'Ciao' + (nome ? ' ' + nome : '') + '! 👋\n\nPromemoria di oggi:\n\n' + righe.join('\n') + '\n\nUn abbraccio,\nla tua app ' + NOME_APP
   });
 }
 
-/** Da lanciare a mano una volta dall'editor: chiede tutti i permessi e prepara foglio, cartella e calendario. */
+/** Da lanciare a mano UNA volta dall'editor: chiede i permessi e prepara foglio, cartella e calendario. */
 function primoAvvio() {
+  if (!proprietario_()) props_().setProperty('proprietario', utente_());
   foglio_();
   cartella_();
   calendario_();
-  Logger.log('Tutto pronto! Cartella: ' + cartella_().getUrl());
+  Logger.log('Tutto pronto! Proprietario: ' + proprietario_() + ' - Cartella: ' + cartella_().getUrl());
 }
