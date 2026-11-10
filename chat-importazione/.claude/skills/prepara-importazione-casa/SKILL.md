@@ -22,16 +22,37 @@ strade: spiega all'utente cosa deve fare a mano.
 2. **Chiedi chi c'è in famiglia**, se non lo sai già da questa chat: nome, cognome e, se li ha a portata,
    codice fiscale e soprannomi (es. "Enza" per Vincenzina). Ti serve per capire di chi è ogni documento.
    Se l'utente non vuole rispondere, ricavalo dai documenti.
-3. **Elenca i file** con Glob, anche nelle sottocartelle. Considera solo PDF, JPG, JPEG, PNG e WEBP: l'app
+3. **Guarda se c'è già un `importazione-casa.json`** nella cartella scelta. Se c'è, leggilo con Read **prima** di
+   tutto il resto: i file già presenti nel suo campo `file` li hai già letti in un giro precedente, quindi non
+   rileggerli (a meno che l'utente non chieda di rileggerli o di rifare tutto da zero). Vedi il passo 7.
+4. **Elenca i file** con Glob, anche nelle sottocartelle. Considera solo PDF, JPG, JPEG, PNG e WEBP: l'app
    importa solo questi tipi. Elenca a parte gli altri file (video, Word, Excel, archivi...), così l'utente sa
-   che non verranno importati. Se i file sono molti (più di 60), chiedi se vuole procedere tutto o una parte.
-4. **Leggi ogni documento per intero** con Read, anche le scansioni: guarda le immagini con attenzione e leggi i
-   PDF lunghi a blocchi di pagine.
-5. **Per ogni documento ricava** i dati del formato qui sotto. Usa anche i nomi delle cartelle e dei file
+   che non verranno importati. Se i file nuovi da leggere sono molti (più di 60), chiedi se vuole procedere
+   con tutti o con una parte.
+5. **Leggi ogni documento nuovo per intero** con Read, anche le scansioni: guarda le immagini con attenzione e
+   leggi i PDF lunghi a blocchi di pagine.
+6. **Per ogni documento ricava** i dati del formato qui sotto. Usa anche i nomi delle cartelle e dei file
    come indizi: una cartella con un nome (es. `enza`, `GENNARO`) contiene di solito i documenti di quella persona.
-6. **Scrivi `importazione-casa.json`** con Write, in UTF-8, nella cartella scelta (non nelle sottocartelle).
-   Se esiste già, leggilo prima con Read e avvisa l'utente che lo sostituisci.
-7. **Mostra un riepilogo** in una tabella (file, di chi è, tipo, scadenza, dubbi) e indica all'utente il
+7. **Scrivi `importazione-casa.json`** con Write, in UTF-8, nella cartella scelta (non nelle sottocartelle).
+   **Se il file esiste già, non sostituirlo: unisci.** La stessa cartella si può usare più volte e con chat
+   diverse (documenti e bollette), e l'app salta da sola quello che ha già importato, quindi il file deve
+   solo crescere:
+   - tieni **tutti** gli elementi che c'erano già (`persone`, `documenti`, `impegni`, `pagamenti`, e qualunque
+     altra sezione che trovi, anche se non la conosci) e aggiungi quelli nuovi;
+   - **niente doppioni**: un documento o un pagamento con lo stesso `file` di uno già presente non va aggiunto
+     di nuovo. Lo stesso vale per un documento con stessa persona, `tipo` e `numero`; per un pagamento con
+     stesso `titolo` e `scadenza`; per un impegno con stesso `titolo` e `data`; per una persona con lo stesso
+     codice fiscale, oppure stesso nome e cognome;
+   - se nella nuova lettura un elemento già presente risulta diverso (per esempio una bolletta che ora risulta
+     pagata, o una data letta meglio), **aggiorna quell'elemento** invece di aggiungerne un altro, e dillo nel
+     riepilogo;
+   - lascia `formato` e `versione` come sono;
+   - se il file esistente non è un JSON valido o ha un `formato` diverso da `casa-santoro-importazione`, non
+     toccarlo: spiega il problema all'utente e chiedigli cosa fare;
+   - sostituisci tutto il file **solo** se l'utente chiede espressamente di "rifare da zero".
+   Scrivi il file completo (vecchio + nuovo) con Write.
+8. **Mostra un riepilogo** in una tabella (file, di chi è, tipo, scadenza, dubbi), indicando cosa hai **aggiunto**
+   in questo giro, cosa hai **aggiornato** e quanti elementi c'erano già. Indica all'utente il
    passo successivo: nell'app, da Chrome sul PC, aprire **☰ (in alto) → 📥 Importa da cartella**, premere
    **"Scegli la cartella"** e scegliere la stessa cartella.
 
