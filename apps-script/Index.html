@@ -215,6 +215,22 @@ input[type=date].in,input[type=time].in{min-width:0;-webkit-appearance:none;appe
 </head>
 <body>
 <div id="caricamento"><div class="casa">🏠</div>Sto aprendo casa…</div>
+<script>
+// Registro dei passi: se l'app si blocca, lo mostra sullo schermo (serve a capire cosa e' successo).
+var REGISTRO = [];
+function registra(m) { try { REGISTRO.push(new Date().toTimeString().slice(0, 8) + ' ' + m); } catch (e) {} }
+function testoRegistro() { return REGISTRO.join('\n').replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+function mostraRegistro(titolo) {
+  var c = document.getElementById('caricamento');
+  if (!c || c.style.display === 'none') return;
+  c.innerHTML = '<div class="casa">😵</div>' + titolo +
+    '<div class="mini" style="white-space:pre-wrap;text-align:left;max-width:560px">' + testoRegistro() + '</div>' +
+    '<button class="btn" onclick="location.reload()">Riprova</button>';
+}
+window.addEventListener('error', function (e) { registra('ERRORE: ' + e.message + ' (riga ' + e.lineno + ')'); mostraRegistro('Qualcosa si è rotto nell\'app.'); });
+window.addEventListener('unhandledrejection', function (e) { registra('ERRORE: ' + ((e.reason && e.reason.message) || e.reason)); });
+registra('pagina caricata');
+</script>
 
 <header><div class="wrap">
   <h1>🏠 Casa <span>Santoro</span><em>/Longobardi</em></h1>
@@ -252,7 +268,10 @@ function api(nome, ...args) {
       }, 250);
       return;
     }
-    google.script.run.withSuccessHandler(ok).withFailureHandler(ko)[nome](...args);
+    if (nome === 'getTutto') registra('chiedo i dati a Google');
+    google.script.run
+      .withSuccessHandler(r => { if (nome === 'getTutto') registra('dati arrivati'); ok(r); })
+      .withFailureHandler(e => { registra('errore da Google (' + nome + '): ' + ((e && e.message) || e)); ko(e); })[nome](...args);
   });
 }
 
@@ -1053,7 +1072,7 @@ function eliminaPersona(id) {
 /* =========================================================
    Cerca documenti in una cartella (SOLO LETTURA)
    ========================================================= */
-const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 const haParola = (testo, w) => w && (' ' + testo + ' ').includes(' ' + w + ' ');
 
 const INDIZI_TIPO = [
@@ -1300,7 +1319,7 @@ function trovaPersonaImport(p, extra) {
 
 function preparaImport(testo, fonte) {
   let j;
-  try { j = JSON.parse(String(testo).replace(/^﻿/, '')); } catch (e) { return toast('Il file ' + NOME_IMPORT + ' è rovinato: fallo rifare alla chat 😅', 6000); }
+  try { j = JSON.parse(String(testo).replace(/^\uFEFF/, '')); } catch (e) { return toast('Il file ' + NOME_IMPORT + ' è rovinato: fallo rifare alla chat 😅', 6000); }
   if (!j || j.formato !== 'casa-santoro-importazione') return toast('Questo file non è per Casa Santoro/Longobardi 🤔', 5000);
   const voci = [];
   const nuove = []; // persone che verranno create (finte, per gli abbinamenti)
@@ -2017,8 +2036,11 @@ const AIUTO_ACCOUNT = `<div class="aiuto">
     <li>Per una prova veloce: apri l'app in una <b>finestra di navigazione in incognito</b> (Ctrl+Maiusc+N).</li>
   </ol></div>`;
 function problemaCaricamento(titolo, dettaglio) {
-  $('#caricamento').innerHTML = `<div class="casa">😵</div>${titolo}${dettaglio ? `<div class="mini">${esc(dettaglio)}</div>` : ''}${AIUTO_ACCOUNT}<button class="btn" onclick="location.reload()">Riprova</button>`;
+  $('#caricamento').innerHTML = `<div class="casa">😵</div>${titolo}${dettaglio ? `<div class="mini">${esc(dettaglio)}</div>` : ''}${AIUTO_ACCOUNT}
+    <details class="mini" style="max-width:560px;text-align:left"><summary>Dettagli per Claude</summary><div style="white-space:pre-wrap">${testoRegistro()}</div></details>
+    <button class="btn" onclick="location.reload()">Riprova</button>`;
 }
+registra('programma pronto, modalità ' + (DEMO ? 'prova' : 'Google'));
 const attesaDati = setTimeout(() => {
   if ($('#caricamento').style.display !== 'none') problemaCaricamento('Ci sto mettendo troppo ad aprire casa…', 'Google non mi ha ancora mandato i tuoi dati.');
 }, 20000);
