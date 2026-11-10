@@ -60,10 +60,16 @@
   <div id="benvenuto" class="schermo">
     <img src="icons/icon-192.png" alt="">
     <div style="font-size:22px"><strong>Casa Santoro/Longobardi</strong></div>
-    <div class="mini">Documenti, scadenze, spesa, progetti e numeri utili di famiglia 🏠</div>
+    <div class="mini">Documenti, scadenze, bollette e spesa di famiglia 🏠</div>
     <button onclick="apri()">Apri l'app</button>
     <button id="installa" class="sec" style="display:none" onclick="installa()">📲 Installa sul dispositivo</button>
-    <div class="mini" id="suggerimento">Per averla come app: menu ⋮ di Chrome → <b>Installa app</b> (o <b>Aggiungi a schermata Home</b>).</div>
+    <div class="mini" id="suggerimento">Per averla come app: menu ⋮ di Chrome → <b>Aggiungi a schermata Home</b> → <b>Installa</b> (non "Crea scorciatoia").</div>
+  </div>
+
+  <div id="loginbar">
+    <span>Non si apre o vedi un errore?</span>
+    <button onclick="paginaIntera()">Apri a pagina intera</button>
+    <button class="x" onclick="nascondiBarra()" aria-label="Chiudi">✕</button>
   </div>
 
   <script>
@@ -91,9 +97,11 @@
       avvia();
     }
 
-    // L'app NON viene incorniciata (iframe): dentro una cornice Chrome blocca i cookie di Google
-    // e l'accesso con il proprio account non funziona. Si va direttamente all'app su Google.
+    // Come il gestionale: l'app di Google si apre DENTRO questa pagina (cornice), cosi' resta
+    // a schermo intero nell'app installata. Se Chrome blocca l'accesso dentro la cornice
+    // (per esempio in incognito), la barra in basso permette di aprirla a pagina intera.
     var installata = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    var cornice, timerBarra;
 
     function avvia() {
       if (!APP_URL) { mostra('configura'); return; }
@@ -104,7 +112,24 @@
 
     function apri() {
       mostra('loading');
-      window.location.replace(APP_URL);
+      cornice = document.createElement('iframe');
+      cornice.src = APP_URL;
+      cornice.title = 'Casa Santoro/Longobardi';
+      cornice.allow = 'clipboard-read; clipboard-write; fullscreen; camera; web-share';
+      cornice.onload = function () { mostra(''); };
+      document.body.appendChild(cornice);
+      // Per qualche secondo offre la via d'uscita, poi si toglie da sola
+      setTimeout(function () {
+        document.getElementById('loginbar').style.display = 'flex';
+        timerBarra = setTimeout(nascondiBarra, 15000);
+      }, 6000);
+    }
+
+    function nascondiBarra() { clearTimeout(timerBarra); document.getElementById('loginbar').style.display = 'none'; }
+
+    function paginaIntera() {
+      nascondiBarra();
+      window.location.href = APP_URL;
     }
 
     window.addEventListener('beforeinstallprompt', function (e) {
