@@ -1,6 +1,6 @@
 ---
 name: prepara-importazione-casa
-description: Legge i documenti di famiglia di una cartella (PDF o foto di carte d'identità, passaporti, patenti, tessere sanitarie, assicurazioni, bolli, revisioni, referti, ISEE, contratti, bollette, inviti, appuntamenti, biglietti da visita) e scrive nella stessa cartella il file importazione-casa.json per la funzione "📥 Importa" dell'app Casa Santoro/Longobardi. Usala quando l'utente indica una cartella di documenti da importare nell'app di famiglia.
+description: Legge i documenti di famiglia di una cartella (PDF o foto di carte d'identità, passaporti, patenti, tessere sanitarie, assicurazioni, bolli, revisioni, referti, ISEE, contratti, bollette, avvisi di pagamento, ricevute, F24, PagoPA, inviti, appuntamenti) e scrive nella stessa cartella il file importazione-casa.json per la funzione "📥 Importa" dell'app Casa Santoro/Longobardi. Usala quando l'utente indica una cartella di documenti da importare nell'app di famiglia.
 ---
 
 # Preparare l'importazione di una cartella di documenti di famiglia
@@ -32,7 +32,7 @@ strade: spiega all'utente cosa deve fare a mano.
 6. **Scrivi `importazione-casa.json`** con Write, in UTF-8, nella cartella scelta (non nelle sottocartelle).
    Se esiste già, leggilo prima con Read e avvisa l'utente che lo sostituisci.
 7. **Mostra un riepilogo** in una tabella (file, di chi è, tipo, scadenza, dubbi) e indica all'utente il
-   passo successivo: nell'app, da Chrome sul PC, aprire **☰ Altro → 📥 Importa da cartella**, premere
+   passo successivo: nell'app, da Chrome sul PC, aprire **☰ (in alto) → 📥 Importa da cartella**, premere
    **"Scegli la cartella"** e scegliere la stessa cartella.
 
 Non modificare, rinominare, spostare o cancellare i documenti: scrivi solo `importazione-casa.json`.
@@ -64,9 +64,11 @@ Non modificare, rinominare, spostare o cancellare i documenti: scrivi solo `impo
     { "titolo": "Visita pediatrica", "categoria": "Salute", "data": "2026-12-03", "oraInizio": "17:30", "oraFine": "",
       "persone": ["Gennaro"], "luogo": "Studio dott. Rossi", "note": "", "file": "prenotazione.pdf", "dubbi": "" }
   ],
-  "numeri": [
-    { "nome": "Pediatra dott. Rossi", "categoria": "Medici e salute", "telefono": "081 1234567", "telefono2": "",
-      "email": "", "indirizzo": "Via Roma 1, Salerno", "note": "Riceve lun-ven 9-12", "file": "biglietto.jpg" }
+  "pagamenti": [
+    { "file": "bollette/enel ottobre.pdf", "titolo": "Luce Enel", "categoria": "Luce", "importo": "84,30",
+      "scadenza": "2026-11-20", "periodo": "set-ott 2026", "metodo": "Domiciliazione",
+      "intestatario": { "nome": "Carmine", "cognome": "Santoro" }, "pagata": false, "dataPagamento": "",
+      "note": "Codice cliente 123456", "dubbi": "", "affidabilita": "alta" }
   ]
 }
 ```
@@ -108,10 +110,27 @@ colloquio, evento con data e ora). `categoria` tra: Salute, Scuola, Sport, Festa
 Chiesa, Lavoro, Viaggio, Altro. `persone`: i nomi delle persone coinvolte. Date AAAA-MM-GG, ore HH:MM
 (lascia `oraInizio` vuota se è tutto il giorno). Non inserire appuntamenti già passati.
 
-### numeri
-Solo se un documento è chiaramente un contatto utile (biglietto da visita, carta intestata del medico, numero
-della scuola...). `categoria` tra: Medici e salute, Scuola, Guasti e casa, Uffici e servizi, Auto e trasporti,
-Lavoro, Famiglia e amici, Chiesa, Negozi, Altro.
+### pagamenti
+Bollette e pagamenti di casa: bollette di luce, gas, acqua, telefono e internet, TARI, IMU e F24, avvisi PagoPA,
+rate di mutuo e prestiti, condominio, affitto, rette di asilo e scuola, abbonamenti, ricevute di pagamento.
+Un elemento per ogni bolletta o avviso (non per ogni pagina):
+
+- **file**: come per i documenti.
+- **titolo**: breve e chiaro, con il fornitore (es. "Luce Enel", "Acqua Ausino", "TARI 2026 rata 2", "Rata mutuo").
+- **categoria**: una tra Luce, Gas, Acqua, Telefono e internet, Rifiuti (TARI), Tasse e IMU, Mutuo e prestiti,
+  Affitto, Condominio, Assicurazioni, Auto e bollo, Scuola e asilo, Sport e corsi, Abbonamenti, Salute, Altro.
+- **importo**: il totale da pagare, come testo con la virgola (es. "84,30").
+- **scadenza**: la data entro cui pagare (AAAA-MM-GG). Per un avviso con più rate, un elemento per rata.
+- **periodo**: il periodo a cui si riferisce, se scritto (es. "set-ott 2026").
+- **metodo**: Domiciliazione, PagoPA, Bonifico, Carta, Bollettino, F24, Contanti o Altro, se si capisce.
+- **intestatario**: a chi è intestata (`nome`, `cognome`), se è una persona della famiglia; altrimenti ometti.
+- **pagata**: `true` solo se il documento è una ricevuta o dice chiaramente che è già pagata (domiciliazione
+  già addebitata, quietanza); `dataPagamento` se c'è.
+- **note**: codice cliente, numero avviso PagoPA, IUV o altre informazioni utili per pagare.
+- **dubbi** e **affidabilita**: come per i documenti.
+
+Le bollette vecchie già pagate vanno bene (servono per il riepilogo delle spese dell'anno): mettile con
+`"pagata": true`.
 
 ## Regole
 

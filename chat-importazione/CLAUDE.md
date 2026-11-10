@@ -1,7 +1,7 @@
 # Chat «Preparazione importazione-casa.json» – Casa Santoro/Longobardi
 
 Le chat aperte in questa cartella servono solo a preparare il file `importazione-casa.json` per la funzione
-"📥 Importa" dell'app di famiglia Casa Santoro/Longobardi (documenti, scadenze, impegni, numeri utili).
+"📥 Importa" dell'app di famiglia Casa Santoro/Longobardi (documenti, scadenze, impegni, bollette e pagamenti).
 Quando l'utente indica una cartella di documenti, segui la skill `prepara-importazione-casa`
 (`.claude/skills/prepara-importazione-casa/SKILL.md`).
 

@@ -191,7 +191,7 @@ fetch('../apps-script/Codice.gs').then(r => r.text()).then(codice => {
   prova('La pagina si apre per il proprietario', () => vero(doGet().contenuto === 'APP:Index'));
   prova('getTutto restituisce tutte le sezioni', () => {
     const t = getTutto();
-    ['persone', 'documenti', 'impegni', 'spesa', 'progetti', 'numeri'].forEach(k => vero(Array.isArray(t[k]), k));
+    ['persone', 'documenti', 'impegni', 'spesa', 'pagamenti'].forEach(k => vero(Array.isArray(t[k]), k));
     vero(t.io.proprietario === true && t.io.nome === 'Carmine', 'io: ' + JSON.stringify(t.io));
   });
   prova('Salvo le persone', () => {
@@ -235,6 +235,28 @@ fetch('../apps-script/Codice.gs').then(r => r.text()).then(codice => {
     vero(eventiIn(idCal) === 4);
     salva('Progetti', Object.assign({}, p, { stato: 'fatto' }));
     vero(eventiIn(idCal) === 3, 'eventi: ' + eventiIn(idCal));
+  });
+  prova('Bolletta da pagare: avviso nel calendario; pagata: l\'avviso sparisce', () => {
+    const prima = eventiIn(idCal);
+    const b = salva('Pagamenti', { titolo: 'Luce Enel', categoria: 'Luce', importo: '84,30', scadenza: '2026-12-01', pagata: '', personaId: persone.carmine.id, files: '[]' }).obj;
+    vero(eventiIn(idCal) === prima + 1, 'evento non creato');
+    const ev = Object.values(CAL[idCal].eventi).find(e => e.titolo.includes('Luce Enel'));
+    vero(ev && ev.titolo.includes('84,30 €'), 'titolo: ' + (ev && ev.titolo));
+    vero(ev.reminder.includes(4320), 'manca avviso 3 giorni prima');
+    salva('Pagamenti', Object.assign({}, b, { pagata: 'si', dataPagamento: '2026-11-28' }));
+    vero(eventiIn(idCal) === prima, 'l\'avviso della bolletta pagata e\' rimasto');
+    vero(getTutto().pagamenti.length === 1, 'pagamenti non letti');
+  });
+  prova('Elimino una bolletta: via l\'avviso e la copia del file, mai un file esterno', () => {
+    const copia = elemento('file', 'bolletta.pdf', null);
+    copia.genitori = [cartellaPersona_('Bollette e pagamenti').getId()];
+    const fuori = elemento('file', 'bolletta originale.pdf', null);
+    const b = salva('Pagamenti', { titolo: 'Gas', scadenza: '2026-12-10', pagata: '', files: JSON.stringify([{ id: copia.id }, { id: fuori.id }]) }).obj;
+    const prima = eventiIn(idCal);
+    elimina('Pagamenti', b.id);
+    vero(eventiIn(idCal) === prima - 1, 'avviso rimasto');
+    vero(copia.cestino === true, 'copia non cestinata');
+    vero(fuori.cestino === false, 'FILE ESTERNO CESTINATO');
   });
   prova('Spesa: aggiungo, spunto, tolgo i presi', () => {
     const a = salva('Spesa', { nome: 'Latte', reparto: 'Latticini e uova', preso: '' }).obj;

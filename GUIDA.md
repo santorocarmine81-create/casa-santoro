@@ -84,7 +84,7 @@ Se vedi una pagina bianca o un errore, premi **Entra con Google** nella barra in
 4. Lei apre il link da Chrome sul suo telefono, entra con **il suo** account Google,
    preme **Avanzate → Vai a … → Consenti** e poi **⋮ → Installa app**.
 
-Cosa vede lei: tutto quello che vedi tu (documenti, calendario di casa, spesa, progetti, numeri).
+Cosa vede lei: tutto quello che vedi tu (documenti, calendario di casa, bollette e spesa).
 Ognuno ha il suo saluto e può attivare la sua email di promemoria.
 Per toglierle l'accesso: stessa scheda → **Togli l'accesso** (i dati restano).
 
@@ -108,7 +108,7 @@ Come per il gestionale Santalucia, c'è una chat apposita che legge i documenti 
 
 ## Il calendario
 
-- Scadenze, impegni e obiettivi dei progetti finiscono nel calendario **🏠 Casa Santoro/Longobardi**,
+- Scadenze, impegni e bollette da pagare finiscono nel calendario **🏠 Casa Santoro/Longobardi**,
   che vedi nell'app Google Calendar del telefono insieme agli altri (puoi cambiarne il colore).
 - Dalle impostazioni dell'app puoi scegliere invece il tuo calendario principale
   (ma per vederli anche tua moglie è meglio quello di casa).

@@ -1,7 +1,7 @@
 # 🏠 Casa Santoro/Longobardi
 
 App di famiglia installabile da Chrome su telefono e PC: documenti e scadenze, calendario (mese ed elenco)
-collegato a Google Calendar, lista della spesa condivisa, progetti futuri, numeri utili,
+collegato a Google Calendar, bollette e pagamenti, lista della spesa condivisa,
 ricerca dei documenti nelle cartelle (in sola lettura) e condivisione con la famiglia.
 
 - `apps-script/` – il programma che gira su Google Apps Script (dati in un Foglio Google,

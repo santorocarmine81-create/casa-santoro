@@ -170,6 +170,19 @@ ol.passi li{margin-bottom:6px}
   .tabella td[data-l="Categoria"]{grid-column:2;grid-row:2}
   .tabella td.vuoto{display:none}
 }
+/* Bollette e pagamenti */
+.riepilogo{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:6px}
+.riepilogo .card{margin:0;text-align:center;padding:12px 8px}
+.riepilogo .card b{display:block;font-size:20px;margin:2px 0}
+.riepilogo .card.rosso{background:var(--danger-soft)}
+.riepilogo .card.rosso b{color:var(--danger)}
+@media (max-width:480px){.riepilogo .card b{font-size:16px}}
+.row.pag .dx{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none}
+.row.pag .importo{font-weight:800;font-size:17px;white-space:nowrap}
+.catriga{display:flex;justify-content:space-between;margin-top:10px;font-size:15px}
+select.chip{appearance:auto;border:0}
+@media (min-width:9999px){
+}
 .toggle{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);cursor:pointer;user-select:none}
 .toggle input{width:18px;height:18px;accent-color:var(--accent)}
 
@@ -302,7 +315,7 @@ const GIORNI = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
    Stato
    ========================================================= */
 const S = {
-  persone: [], documenti: [], impegni: [], spesa: [], progetti: [], numeri: [], ignorati: [], imp: {}, link: {},
+  persone: [], documenti: [], impegni: [], spesa: [], ignorati: [], imp: {}, link: {},
   io: { email: '', nome: '', proprietario: true, emailAttiva: false },
   pagamenti: [], filtroPag: 'da', catPag: '',
   vista: 'home', mese: null, giornoSel: null, google: {}, googleCarico: {},
@@ -971,7 +984,7 @@ function vistaFamiglia() {
     </div>`;
   }).join('') + '</div>';
   h += `<div class="quick"><button class="btn" onclick="apriPersona()">➕ Aggiungi qualcuno</button></div>`;
-  if (S.io.proprietario) h += `<div class="card"><b>🤝 Usare l'app in due (o più)</b><p class="mini" style="margin-bottom:0">Apri la scheda di tua moglie (o di chi vuoi), scrivi la sua email Google e premi “Condividi l'app”. Vedrete e modificherete le stesse cose: documenti, calendario, spesa, progetti e numeri. Ognuno entra con il suo account.</p></div>`;
+  if (S.io.proprietario) h += `<div class="card"><b>🤝 Usare l'app in due (o più)</b><p class="mini" style="margin-bottom:0">Apri la scheda di tua moglie (o di chi vuoi), scrivi la sua email Google e premi “Condividi l'app”. Vedrete e modificherete le stesse cose: documenti, calendario, bollette e spesa. Ognuno entra con il suo account.</p></div>`;
   return h;
 }
 function apriPersona(id) {
@@ -1401,12 +1414,22 @@ function preparaImport(testo, fonte) {
     voci.push(v);
   });
 
-  // 4. Numeri utili
-  (j.numeri || []).forEach(n => {
-    const v = { tipo: 'num', dati: n, sel: true, stato: 'nuovo', msg: '' };
-    const tel = telPulito(n.telefono || n.telefono2);
-    if (!n.nome || (!tel && !n.email)) { v.stato = 'problema'; v.sel = false; v.msg = 'Manca il nome o il numero'; }
-    else if (S.numeri.some(x => (tel && (telPulito(x.telefono) === tel || telPulito(x.telefono2) === tel)) || norm(x.nome) === norm(n.nome))) { v.stato = 'gia'; v.sel = false; v.msg = 'C\'è già in rubrica'; }
+  // 4. Bollette e pagamenti
+  (j.pagamenti || []).forEach(p => {
+    const v = { tipo: 'pag', dati: p, sel: true, stato: 'nuovo', msg: '', file: p.file ? fonte.file(p.file) : null };
+    v.persona = p.intestatario ? personaDi(p.intestatario) : null;
+    v.origine = (fonte.fonte === 'drive' && v.file ? 'drive:' + v.file.id : 'pc:' + p.file);
+    const pagata = p.pagata === true || p.pagata === 'si';
+    if (!p.titolo) { v.stato = 'problema'; v.sel = false; v.msg = 'Manca cosa si paga'; voci.push(v); return; }
+    if (p.file && !v.file) v.msg = '⚠️ File “' + p.file + '” non trovato nella cartella: importo solo i dati';
+    const giaFile = S.pagamenti.find(x => filesDi(x).some(f => f.origine === v.origine));
+    const simile = giaFile || S.pagamenti.find(x => p.scadenza && x.scadenza === p.scadenza &&
+      (norm(x.titolo) === norm(p.titolo) || (numero(x.importo) && numero(x.importo) === numero(p.importo) && catPag(x.categoria)[0] === catPag(p.categoria || indovinaCatPag(p.titolo))[0])));
+    if (simile) {
+      v.esistente = simile;
+      if (pagata && simile.pagata !== 'si') { v.stato = 'aggiorna'; v.msg = 'C\'è già: la segno come pagata'; }
+      else { v.stato = 'gia'; v.sel = false; v.msg = giaFile ? 'Già importata' : 'C\'è già tra le bollette'; }
+    }
     voci.push(v);
   });
 
@@ -1419,10 +1442,10 @@ function anteprimaImport() {
   const { fonte, voci } = S_IMP.dati;
   const conta = voci.filter(v => v.sel).length;
   const etichetta = { nuovo: ['b-green', 'Nuovo'], aggiorna: ['b-orange', 'Aggiorna'], gia: ['b-grey', 'C\'è già'], problema: ['b-red', 'Da sistemare'], fatto: ['b-teal', '✅ Importato'], errore: ['b-red', 'Errore'] };
-  const titoli = { persona: '👨‍👩‍👦 Persone', doc: '📄 Documenti', imp: '📌 Impegni', num: '📞 Numeri utili' };
+  const titoli = { persona: '👨‍👩‍👦 Persone', doc: '📄 Documenti', imp: '📌 Impegni', pag: '💶 Bollette e pagamenti' };
   let h = `<div class="card"><b>📂 ${esc(fonte.nome || 'Cartella')}</b>
     <div class="mini">Ho trovato ${voci.length} cose. Togli la spunta a quelle che non vuoi, poi premi “Importa”.</div></div>`;
-  ['persona', 'doc', 'imp', 'num'].forEach(tipo => {
+  ['persona', 'doc', 'imp', 'pag'].forEach(tipo => {
     const lista = voci.map((v, i) => [v, i]).filter(([v]) => v.tipo === tipo);
     if (!lista.length) return;
     h += `<div class="card"><div class="sp-rep">${titoli[tipo]} <span class="mini">${lista.length}</span></div>`;
@@ -1435,7 +1458,10 @@ function anteprimaImport() {
         sotto = [d.numero ? 'n. ' + d.numero : '', d.scadenza ? 'scade il ' + fData(d.scadenza) : 'non scade', d.file ? '📎 ' + d.file : ''];
       }
       if (tipo === 'imp') { titolo = catInfo(d.categoria)[1] + ' ' + d.titolo; sotto = [d.data ? fData(d.data, true) : '', d.oraInizio, (v.persone || []).map(p => p.nome).join(', '), d.luogo]; }
-      if (tipo === 'num') { titolo = catNum(d.categoria)[1] + ' ' + d.nome; sotto = [d.telefono, d.telefono2, d.email]; }
+      if (tipo === 'pag') {
+        titolo = catPag(d.categoria || indovinaCatPag(d.titolo))[1] + ' ' + (d.titolo || 'Pagamento') + (numero(d.importo) ? ' – ' + euro(d.importo) : '');
+        sotto = [d.scadenza ? 'scade il ' + fData(d.scadenza) : '', d.periodo, (d.pagata === true || d.pagata === 'si') ? '✅ pagata' : 'da pagare', v.persona ? v.persona.nome : '', d.file ? '📎 ' + d.file : ''];
+      }
       const bloccato = v.stato === 'problema' || v.stato === 'fatto';
       h += `<div class="sp-row ${v.sel ? '' : 'spento'}" onclick="${bloccato ? '' : `S_IMP.dati.voci[${i}].sel=!S_IMP.dati.voci[${i}].sel;render()`}">
         <span class="check ${v.sel ? 'on' : ''}">${v.sel ? '✓' : ''}</span>
@@ -1514,12 +1540,33 @@ async function eseguiImport() {
         };
         const r = await api('salva', 'Impegni', o); S.impegni.push(r.obj);
       }
-      if (v.tipo === 'num') {
-        const r = await api('salva', 'Numeri', {
-          nome: d.nome, categoria: catNum(d.categoria)[0], telefono: d.telefono || '', telefono2: d.telefono2 || '',
-          email: d.email || '', indirizzo: d.indirizzo || '', note: d.note || '', preferito: ''
-        });
-        S.numeri.push(r.obj);
+      if (v.tipo === 'pag') {
+        const p = v.esistente ? Object.assign({}, v.esistente) : { files: '[]', ripeti: 'no' };
+        const pagata = d.pagata === true || d.pagata === 'si';
+        p.titolo = p.titolo || d.titolo;
+        p.categoria = p.categoria || catPag(d.categoria || indovinaCatPag(d.titolo))[0];
+        if (d.importo !== undefined && d.importo !== '' && !p.importo) p.importo = String(d.importo);
+        if (d.scadenza) p.scadenza = d.scadenza;
+        if (d.periodo && !p.periodo) p.periodo = d.periodo;
+        if (d.metodo && !p.metodo) p.metodo = d.metodo;
+        const chi = vera(v.persona);
+        if (chi && !p.personaId) p.personaId = chi.id;
+        if (pagata) { p.pagata = 'si'; p.dataPagamento = d.dataPagamento || p.dataPagamento || d.scadenza || oggi(); }
+        else if (!v.esistente) p.pagata = '';
+        const note = [d.note, d.dubbi ? 'Da controllare: ' + d.dubbi : ''].filter(Boolean).join(' · ');
+        if (note) p.note = p.note ? p.note + ' · ' + note : note;
+        const files = filesDi(p);
+        if (v.file) {
+          let copia;
+          if (fonte.fonte === 'drive') copia = await api('copiaFileDrive', v.file.id, 'Bollette e pagamenti');
+          else { const pr = await preparaFile(v.file); copia = await api('caricaFile', 'Bollette e pagamenti', p.titolo + ' - ' + pr.nome, pr.mime, pr.base64); }
+          copia.origine = v.origine; files.push(copia);
+        }
+        p.files = JSON.stringify(files);
+        const r = await api('salva', 'Pagamenti', p);
+        const k = S.pagamenti.findIndex(x => x.id === r.obj.id);
+        if (k >= 0) S.pagamenti[k] = r.obj; else S.pagamenti.push(r.obj);
+        if (r.avviso) v.msg = r.avviso;
       }
       v.stato = 'fatto';
     } catch (e) { v.stato = 'errore'; v.msg = 'Non riuscito: ' + (e.message || e); errori++; }
@@ -1669,7 +1716,7 @@ const RIPETI_PAG = [['no', 'Una volta sola'], ['1', 'Ogni mese'], ['2', 'Ogni 2 
 const SUGGERIMENTI_PAG = ['Luce', 'Gas', 'Acqua', 'Internet', 'Telefono', 'TARI', 'IMU', 'Mutuo', 'Condominio', 'Affitto', 'Bollo auto', 'Assicurazione auto', 'Canone RAI', 'Asilo nido', 'Mensa scolastica', 'Palestra', 'Prestito'];
 const catPag = c => CAT_PAG.find(x => x[0] === c) || CAT_PAG[CAT_PAG.length - 1];
 const numero = n => { const v = parseFloat(String(n == null ? '' : n).replace(/\s/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.')); return isNaN(v) ? 0 : v; };
-const euro = n => numero(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+const euro = n => numero(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: 'always' }) + ' €';
 function addMesi(s, n) {
   const d = daIso(s), giorno = d.getDate();
   d.setDate(1); d.setMonth(d.getMonth() + n);
@@ -1968,8 +2015,6 @@ function sceltaNuovo() {
 function menuAltro() {
   apriFinestra(`<h3>☰ Altro<button class="icon-btn x" onclick="chiudiFinestra()">✕</button></h3>
     <div class="row" onclick="vai('fam')"><div class="ico" style="background:var(--primary-soft)">👨‍👩‍👦</div><div class="txt"><div class="t">Famiglia</div><div class="s">Persone e condivisione dell'app</div></div></div>
-    <div class="row" onclick="apriImpostazioni()"><div class="ico" style="background:var(--line)">⚙️</div><div class="txt"><div class="t">Impostazioni</div><div class="s">Calendario, promemoria, il tuo nome</div></div></div>
-    <div class="row" onclick="vai('fam')"><div class="ico" style="background:var(--primary-soft)">👨‍👩‍👦</div><div class="txt"><div class="t">Famiglia</div><div class="s">Persone e condivisione dell'app</div></div></div>
     <div class="row" onclick="vai('importa')"><div class="ico" style="background:var(--accent-soft)">📥</div><div class="txt"><div class="t">Importa da cartella</div><div class="s">I dati letti dalla chat di Claude (importazione-casa.json)</div></div></div>
     <div class="row" onclick="vai('cerca')"><div class="ico" style="background:var(--ok-soft)">🔍</div><div class="txt"><div class="t">Cerca documenti in una cartella</div><div class="s">Drive, PC o chiavetta (solo lettura)</div></div></div>
     <div class="row" onclick="apriImpostazioni()"><div class="ico" style="background:var(--line)">⚙️</div><div class="txt"><div class="t">Impostazioni</div><div class="s">Calendario, promemoria, il tuo nome</div></div></div>`);
@@ -1979,7 +2024,7 @@ function menuAltro() {
    Modalita' prova (solo quando l'app NON e' su Google)
    ========================================================= */
 const PROVA = (() => {
-  const K = 'casaSantoroProva2';
+  const K = 'casaSantoroProva3';
   const leggi = () => { try { return JSON.parse(localStorage.getItem(K)) || null; } catch (e) { return null; } };
   let db = leggi();
   if (!db) {
@@ -2005,23 +2050,21 @@ const PROVA = (() => {
         { id: 's3', nome: 'Mele', quantita: '1 kg', reparto: 'Frutta e verdura', preso: 'si', aggiuntoDa: 'Anna' },
         { id: 's4', nome: 'Detersivo piatti', quantita: '', reparto: 'Casa e pulizia', preso: '', aggiuntoDa: 'Mario' }
       ],
-      Progetti: [
-        { id: 'g1', titolo: 'Vacanza in Sardegna', descrizione: 'Due settimane ad agosto', categoria: 'Viaggio', priorita: 'alta', stato: 'inCorso', costo: '3000', messoDaParte: '1200', dataObiettivo: a(120), persone: 'p1,p2,p3', passi: JSON.stringify([{ t: 'Scegliere la zona', f: true }, { t: 'Prenotare il traghetto', f: false }, { t: 'Prenotare la casa', f: false }]), note: '' },
-        { id: 'g2', titolo: 'Ridipingere la cameretta', descrizione: '', categoria: 'Casa', priorita: 'media', stato: 'idea', costo: '400', messoDaParte: '', dataObiettivo: '', persone: 'p3', passi: '[]', note: '' }
-      ],
-      Numeri: [
-        { id: 'n1', nome: 'Pediatra dott.ssa Esempio', categoria: 'Medici e salute', telefono: '081 0000000', telefono2: '333 0000000', email: '', indirizzo: 'Via Roma 1, Napoli', note: 'Lun-ven 9-12', preferito: 'si' },
-        { id: 'n2', nome: 'Idraulico Gigi', categoria: 'Guasti e casa', telefono: '347 0000000', telefono2: '', email: '', indirizzo: '', note: '', preferito: '' }
+      Pagamenti: [
+        { id: 'b1', titolo: 'Luce', categoria: 'Luce', importo: '84,30', scadenza: a(4), pagata: '', dataPagamento: '', metodo: 'Domiciliazione', periodo: 'set-ott', personaId: 'p1', ripeti: '2', files: '[]', note: '' },
+        { id: 'b2', titolo: 'TARI seconda rata', categoria: 'Rifiuti (TARI)', importo: '120', scadenza: a(-2), pagata: '', dataPagamento: '', metodo: 'PagoPA', periodo: '', personaId: '', ripeti: 'no', files: '[]', note: '' },
+        { id: 'b3', titolo: 'Rata mutuo', categoria: 'Mutuo e prestiti', importo: '540', scadenza: a(-25), pagata: 'si', dataPagamento: a(-26), metodo: 'Domiciliazione', periodo: '', personaId: 'p1', ripeti: '1', files: '[]', note: '' },
+        { id: 'b4', titolo: 'Asilo nido', categoria: 'Scuola e asilo', importo: '210', scadenza: a(20), pagata: '', dataPagamento: '', metodo: 'Bonifico', periodo: 'dicembre', personaId: 'p3', ripeti: '1', files: '[]', note: '' }
       ],
       Ignorati: [], imp: { calendario: 'dedicato', preavviso: 30, mostraGoogle: true, cartellaScansione: '', calendarioAltro: '' },
       io: { email: 'mario@esempio.it', nome: 'Mario', proprietario: true, emailAttiva: false }
     };
   }
-  ['Spesa', 'Progetti', 'Numeri'].forEach(k => { if (!db[k]) db[k] = []; });
+  ['Spesa', 'Pagamenti'].forEach(k => { if (!db[k]) db[k] = []; });
   if (!db.io) db.io = { email: 'mario@esempio.it', nome: 'Mario', proprietario: true, emailAttiva: false };
   const salvaDb = () => { try { localStorage.setItem(K, JSON.stringify(db)); } catch (e) {} };
   return {
-    getTutto: () => ({ persone: db.Persone, documenti: db.Documenti, impegni: db.Impegni, spesa: db.Spesa, progetti: db.Progetti, numeri: db.Numeri, ignorati: db.Ignorati.map(x => x.id), impostazioni: db.imp, link: {}, io: db.io }),
+    getTutto: () => ({ persone: db.Persone, documenti: db.Documenti, impegni: db.Impegni, spesa: db.Spesa, pagamenti: db.Pagamenti, ignorati: db.Ignorati.map(x => x.id), impostazioni: db.imp, link: {}, io: db.io }),
     leggiSezione: tipo => db[tipo],
     svuotaPresi: () => { db.Spesa = db.Spesa.filter(x => x.preso !== 'si'); salvaDb(); return db.Spesa; },
     condividiCon: id => { const p = db.Persone.find(x => x.id === id); p.accesso = 'si'; salvaDb(); return { obj: p, avvisi: [] }; },
@@ -2052,7 +2095,7 @@ const PROVA = (() => {
       testo: JSON.stringify({ formato: 'casa-santoro-importazione', versione: 1,
         persone: [{ nome: 'Anna', cognome: 'Bianchi', relazione: 'Moglie' }, { nome: 'Nonna', cognome: 'Pina', relazione: 'Nonna' }],
         documenti: [{ file: 'anna/tessera anna.pdf', persona: { nome: 'Anna', cognome: 'Bianchi' }, tipo: 'Tessera sanitaria', numero: '8038', scadenza: '2031-01-31', note: '', dubbi: '', affidabilita: 'alta' }],
-        impegni: [], numeri: [{ nome: 'Farmacia centrale', categoria: 'Medici e salute', telefono: '089 111222' }] }) }),
+        impegni: [], pagamenti: [{ titolo: 'Acqua', categoria: 'Acqua', importo: '45,10', scadenza: '2031-02-10', periodo: 'gen-feb', pagata: false }] }) }),
     ignoraFile: (id, nome) => { db.Ignorati.push({ id, nome }); salvaDb(); return true; },
     ripristinaIgnorati: () => { db.Ignorati = []; salvaDb(); return true; }
   };
