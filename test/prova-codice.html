@@ -370,11 +370,30 @@ fetch('../apps-script/Codice.gs').then(r => r.text()).then(codice => {
     return r.spostati + ' cose spostate e riportate';
   });
 
+  return fetch('../apps-script/Index.html').then(r => r.text()).then(pagina => {
+    // Google, quando la pagina e' grande, toglie i commenti e scambia la doppia barra per un commento:
+    // nel programma (dentro <script>) non deve mai esserci una doppia barra se non all'inizio di un commento.
+    prova('Index.html: nessuna doppia barra che Google possa scambiare per un commento', () => {
+      const script = pagina.split('<script>').slice(1).map(p => p.split('</' + 'script>')[0]).join('\n');
+      const sospette = script.split('\n').map((r, i) => [i + 1, r]).filter(([, r]) => {
+        const senzaCommento = r.replace(/^\s*\/\/.*$/, '').replace(/\s\/\/ [^'"`]*$/, '');
+        return senzaCommento.includes('/' + '/');
+      });
+      vero(!sospette.length, sospette.map(([i, r]) => 'riga ' + i + ': ' + r.trim().slice(0, 80)).join(' | '));
+    });
+    prova('Index.html: nessun carattere invisibile speciale', () => {
+      const strani = [...pagina].filter(c => { const k = c.codePointAt(0); return (k >= 0x300 && k <= 0x36f) || k === 0x2028 || k === 0x2029 || k === 0xfeff; });
+      vero(!strani.length, strani.length + ' caratteri');
+    });
+  }).then(fineProve);
+}).catch(e => { document.getElementById('riassunto').textContent = 'Errore nel caricare: ' + e.message; window.ESITO = { errore: e.message }; });
+
+function fineProve() {
   const ko = esiti.filter(e => e[0] === 'ko').length;
   document.getElementById('riassunto').textContent = ko ? '❌ ' + ko + ' prove fallite su ' + esiti.length : '✅ Tutte le ' + esiti.length + ' prove superate';
   document.getElementById('esiti').innerHTML = esiti.map(e => `<li class="${e[0]}">${e[1].replace(/</g, '&lt;')}</li>`).join('');
   window.ESITO = { ko, totale: esiti.length, falliti: esiti.filter(e => e[0] === 'ko').map(e => e[1]) };
-}).catch(e => { document.getElementById('riassunto').textContent = 'Errore nel caricare: ' + e.message; window.ESITO = { errore: e.message }; });
+}
 </script>
 </body>
 </html>

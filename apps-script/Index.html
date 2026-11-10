@@ -1026,7 +1026,8 @@ async function condividi(id) {
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return toast('Scrivi prima una email valida 🙂');
   const btn = $('#pCondividi'); btn.disabled = true; btn.textContent = 'Condivido… ⏳';
   try {
-    const salvata = await salvaPersona(id);  // salvo prima l'email
+    // salvo prima l'email
+    const salvata = await salvaPersona(id);
     if (!salvata) return;
     const r = await api('condividiCon', id);
     const i = S.persone.findIndex(x => x.id === id); S.persone[i] = r.obj;
@@ -1049,7 +1050,10 @@ function togliAccesso(id) {
     }).catch(errore);
   });
 }
-const INDIRIZZO_APP = 'https://santorocarmine81-create.github.io/casa-santoro/';
+// Gli indirizzi web nel codice si scrivono con WEB (mai con la doppia barra scritta per intero):
+// quando la pagina e' grande, Google toglie i commenti e scambia la doppia barra per l'inizio di un commento.
+const WEB = 'https:' + '/' + '/';
+const INDIRIZZO_APP = WEB + 'santorocarmine81-create.github.io/casa-santoro/';
 async function condividiTesto(testo) {
   try {
     if (navigator.share) { await navigator.share({ text: testo }); return; }
@@ -1110,7 +1114,7 @@ function analizza(files) {
   S.documenti.forEach(d => filesDi(d).forEach(f => f.origine && giaIn.add(f.origine)));
   const out = [];
   files.forEach(f => {
-    if (/^(video|audio)\//.test(f.mime || '') || /\.(mkv|mp4|avi|mov|mp3|wav|mpeg|lnk|ini|db|exe|zip|rar)$/i.test(f.nome)) return;
+    if (/^(video|audio)$/.test(String(f.mime || '').split('/')[0]) || /\.(mkv|mp4|avi|mov|mp3|wav|mpeg|lnk|ini|db|exe|zip|rar)$/i.test(f.nome)) return;
     const testo = norm((f.percorso || '') + ' ' + f.nome.replace(/\.\w+$/, ''));
     const compatto = testo.replace(/ /g, '');
     let best = [], punti = 0;
@@ -1135,7 +1139,7 @@ function vistaCerca() {
     <p style="margin-top:0">Dimmi dove guardare: leggo i nomi dei file e delle sottocartelle e ti dico quali sembrano di qualcuno della famiglia.</p>
     <p class="mini">🔒 Le tue cartelle le guardo e basta: non sposto, non rinomino e non cancello niente. Se vuoi tenere un documento nell'app, ne faccio una <b>copia</b> nella cartella “Casa Santoro-Longobardi - Documenti”; l'originale resta dov'è, intatto.</p>
     <label class="f">📁 Cartella di Google Drive (incolla il link)</label>
-    <input class="in" id="cLink" placeholder="https://drive.google.com/drive/folders/…" value="${esc(S.imp.cartellaScansione || '')}">
+    <input class="in" id="cLink" placeholder="drive.google.com/drive/folders/…" value="${esc(S.imp.cartellaScansione || '')}">
     <div class="azioni" style="margin-top:10px">
       <button class="btn" id="cVai" onclick="cercaDrive()">🔍 Guarda nella cartella Drive</button>
       <button class="btn sec" onclick="cercaPC()">💻 Scegli una cartella del PC o di una chiavetta</button>
@@ -1259,7 +1263,7 @@ function vistaImporta() {
     <p class="mini">Si sceglie da Chrome sul computer. Chrome ti chiede se vuoi “caricare” i file: in realtà li leggo qui, e copio solo quelli che importi.</p>
     <div class="sep"></div>
     <label class="f">Oppure: cartella di Google Drive (incolla il link)</label>
-    <div class="spadd"><input class="in" id="impLink" placeholder="https://drive.google.com/drive/folders/…"><button class="btn sec" id="impVai" onclick="importaDaDrive()">Leggi</button></div>
+    <div class="spadd"><input class="in" id="impLink" placeholder="drive.google.com/drive/folders/…"><button class="btn sec" id="impVai" onclick="importaDaDrive()">Leggi</button></div>
   </div>`;
   return h;
 }
@@ -1764,8 +1768,8 @@ function whatsapp(n) {
   let d = String(n || '').trim(), estero = false;
   if (d.startsWith('+')) { d = d.slice(1).replace(/\D/g, ''); estero = true; }
   else { d = d.replace(/\D/g, ''); if (d.startsWith('00')) { d = d.slice(2); estero = true; } else if (d.startsWith('3')) d = '39' + d; }
-  if (/^393\d{8,9}$/.test(d)) return 'https://wa.me/' + d;
-  if (estero && !d.startsWith('39') && d.length > 8) return 'https://wa.me/' + d;
+  if (/^393\d{8,9}$/.test(d)) return WEB + 'wa.me/' + d;
+  if (estero && !d.startsWith('39') && d.length > 8) return WEB + 'wa.me/' + d;
   return '';
 }
 function vistaNumeri() {
@@ -1803,7 +1807,7 @@ function rigaNumero(n) {
         ${n.telefono2 ? `<a class="btn sec small" href="tel:${esc(telPulito(n.telefono2))}" target="_top" ${stop}>📱 Cellulare</a>` : ''}
         ${wa ? `<a class="btn sec small" href="${esc(wa)}" target="_blank" ${stop}>💬 WhatsApp</a>` : ''}
         ${n.email ? `<a class="btn sec small" href="mailto:${esc(n.email)}" target="_top" ${stop}>✉️</a>` : ''}
-        ${n.indirizzo ? `<a class="btn sec small" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(n.indirizzo)}" target="_blank" ${stop}>📍</a>` : ''}
+        ${n.indirizzo ? `<a class="btn sec small" href="${esc(WEB + 'www.google.com/maps/search/?api=1&query=' + encodeURIComponent(n.indirizzo))}" target="_blank" ${stop}>📍</a>` : ''}
       </div></div>
   </div>`;
 }
