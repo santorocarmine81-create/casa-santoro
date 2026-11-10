@@ -21,7 +21,8 @@
     .schermo { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
       gap:14px; text-align:center; padding:16px; background:var(--bg); }
     .schermo img { width:96px; height:96px; }
-    #offline, #configura { display:none; }
+    #offline, #configura, #benvenuto { display:none; }
+    button.sec { background:var(--card); color:var(--ink); box-shadow:0 4px 14px rgba(120,70,40,.15); }
     .salta { animation: salta 1s ease-in-out infinite; }
     @keyframes salta { 50% { transform: translateY(-10px); } }
     button { font:inherit; font-weight:700; padding:11px 20px; border-radius:14px; border:0; background:var(--primary); color:#fff; cursor:pointer; }
@@ -56,10 +57,13 @@
     <button onclick="salvaUrl()">Fatto, apri l'app</button>
   </div>
 
-  <div id="loginbar">
-    <span>Vedi un errore o una pagina bianca?</span>
-    <button onclick="accedi()">Entra con Google</button>
-    <button class="x" onclick="nascondiBarra()" aria-label="Chiudi">✕</button>
+  <div id="benvenuto" class="schermo">
+    <img src="icons/icon-192.png" alt="">
+    <div style="font-size:22px"><strong>Casa Santoro/Longobardi</strong></div>
+    <div class="mini">Documenti, scadenze, spesa, progetti e numeri utili di famiglia 🏠</div>
+    <button onclick="apri()">Apri l'app</button>
+    <button id="installa" class="sec" style="display:none" onclick="installa()">📲 Installa sul dispositivo</button>
+    <div class="mini" id="suggerimento">Per averla come app: menu ⋮ di Chrome → <b>Installa app</b> (o <b>Aggiungi a schermata Home</b>).</div>
   </div>
 
   <script>
@@ -68,10 +72,10 @@
     var APP_URL_FISSO = 'https://script.google.com/macros/s/AKfycbz94kg2wAngUGBv68LgJHRPgCmkYh-N8zBHUcAyoJrlzrG5IgsAtQptKYO1tiCzG46O/exec';
     var APP_URL = APP_URL_FISSO;
     try { APP_URL = APP_URL_FISSO || localStorage.getItem('casaSantoroUrl') || ''; } catch (e) {}
-    var frame, timer;
+    var richiestaInstalla = null;
 
     function mostra(id) {
-      ['loading', 'offline', 'configura'].forEach(function (x) {
+      ['loading', 'offline', 'configura', 'benvenuto'].forEach(function (x) {
         document.getElementById(x).style.display = x === id ? 'flex' : 'none';
       });
     }
@@ -87,31 +91,32 @@
       avvia();
     }
 
+    // L'app NON viene incorniciata (iframe): dentro una cornice Chrome blocca i cookie di Google
+    // e l'accesso con il proprio account non funziona. Si va direttamente all'app su Google.
+    var installata = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
     function avvia() {
       if (!APP_URL) { mostra('configura'); return; }
       if (!navigator.onLine) { mostra('offline'); return; }
-      mostra('loading');
-      frame = document.createElement('iframe');
-      frame.src = APP_URL;
-      frame.title = 'Casa Santoro/Longobardi';
-      frame.allow = 'clipboard-read; clipboard-write; fullscreen; camera';
-      frame.onload = function () { mostra(''); };
-      document.body.appendChild(frame);
-      // Per qualche secondo offre l'accesso a Google, utile se l'account non viene riconosciuto dentro l'app.
-      document.getElementById('loginbar').style.display = 'flex';
-      timer = setTimeout(nascondiBarra, 12000);
+      if (installata) { apri(); return; }   // app installata: si entra subito
+      mostra('benvenuto');                  // nel browser: pagina di benvenuto con "Installa"
     }
 
-    function nascondiBarra() { document.getElementById('loginbar').style.display = 'none'; }
+    function apri() {
+      mostra('loading');
+      window.location.replace(APP_URL);
+    }
 
-    // Apre l'accesso Google in una finestra a parte; quando la chiudi, l'app si ricarica gia' collegata.
-    function accedi() {
-      clearTimeout(timer);
-      var w = window.open(APP_URL, 'login_google', 'width=520,height=680');
-      if (!w) { window.location.href = APP_URL; return; }
-      var check = setInterval(function () {
-        if (w.closed) { clearInterval(check); nascondiBarra(); frame.src = APP_URL; }
-      }, 800);
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      richiestaInstalla = e;
+      document.getElementById('installa').style.display = 'inline-block';
+      document.getElementById('suggerimento').style.display = 'none';
+    });
+    function installa() {
+      if (!richiestaInstalla) return;
+      richiestaInstalla.prompt();
+      richiestaInstalla.userChoice.then(function () { richiestaInstalla = null; document.getElementById('installa').style.display = 'none'; });
     }
 
     avvia();

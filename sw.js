@@ -1,6 +1,6 @@
 // Service worker: salva solo la pagina contenitore e le icone,
 // cosi' l'app si apre subito. I dati restano sempre su Google.
-var CACHE = 'casa-santoro-v3';
+var CACHE = 'casa-santoro-v4';
 var FILES = ['./', 'index.html', 'manifest.json', 'icons/icon-192.png', 'icons/icon-512.png'];
 
 self.addEventListener('install', function (e) {
