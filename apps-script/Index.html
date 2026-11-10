@@ -93,6 +93,42 @@ h2{font-size:19px;margin:22px 0 10px;font-weight:800}
   .day .dots{display:none}
   .day .pill,.day .more{display:block}
 }
+.modo{display:inline-flex;background:var(--card);border-radius:16px;padding:4px;box-shadow:var(--shadow);margin:4px 0 10px}
+.modo button{border:0;background:transparent;border-radius:12px;padding:8px 16px;font-weight:800;cursor:pointer;color:var(--muted)}
+.modo button.on{background:var(--primary);color:#fff}
+.filtri{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+@media (max-width:600px){.filtri{grid-template-columns:1fr 1fr}.filtri select:first-child{grid-column:1/-1}}
+.legenda{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;background:var(--accent-soft);border-radius:14px;padding:10px 14px;font-size:14px;margin-bottom:10px}
+.legenda b{color:var(--accent)}
+.legenda span{display:inline-flex;align-items:center;gap:5px}
+.legenda i{width:11px;height:11px;border-radius:50%;display:inline-block}
+.b-yellow{background:#fef3c7;color:#a16207}
+@media (prefers-color-scheme: dark){.b-yellow{background:#423814;color:#facc15}}
+.tabella{background:var(--card);border-radius:20px;box-shadow:var(--shadow);overflow-x:auto}
+.tabella table{width:100%;border-collapse:collapse;font-size:15px}
+.tabella th{background:var(--primary);color:#fff;text-align:left;padding:12px 10px;font-weight:800;font-size:14px}
+.tabella td{padding:12px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tabella tbody tr{cursor:pointer}
+.tabella tbody tr:nth-child(even){background:color-mix(in srgb,var(--bg) 60%,var(--card))}
+.tabella tbody tr:hover{background:var(--primary-soft)}
+.tabella td.data{font-weight:800;color:var(--primary);white-space:nowrap}
+.tabella td.data .anno{display:block;font-size:12px;color:var(--muted);font-weight:700}
+.tabella td.cosa{font-weight:700}
+.tabella td.note{color:var(--muted)}
+@media (max-width:700px){
+  .tabella{background:transparent;box-shadow:none;border-radius:0}
+  .tabella thead{display:none}
+  .tabella table,.tabella tbody{display:block}
+  .tabella tbody tr{display:grid;grid-template-columns:auto 1fr auto;gap:2px 12px;background:var(--card)!important;border-radius:18px;box-shadow:var(--shadow);padding:12px 14px;margin-bottom:10px}
+  .tabella td{border:0;padding:0}
+  .tabella td.data{grid-row:1/span 2;text-align:center;align-self:center;font-size:14px}
+  .tabella td.cosa{grid-column:2}
+  .tabella td.giorni{grid-column:3;grid-row:1}
+  .tabella td[data-l]{grid-column:2/-1;font-size:14px;color:var(--muted)}
+  .tabella td[data-l]::before{content:attr(data-l) ": ";font-weight:700}
+  .tabella td[data-l="Categoria"]{grid-column:2;grid-row:2}
+  .tabella td.vuoto{display:none}
+}
 .toggle{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);cursor:pointer;user-select:none}
 .toggle input{width:18px;height:18px;accent-color:var(--accent)}
 
@@ -203,7 +239,9 @@ const GIORNI = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
 const S = {
   persone: [], documenti: [], impegni: [], ignorati: [], imp: {}, link: {}, email: '',
   vista: 'home', mese: null, giornoSel: null, google: {}, googleCarico: {},
-  filtroPersona: '', cerca: '', scan: null, pcFiles: {}
+  filtroPersona: '', cerca: '', scan: null, pcFiles: {},
+  calModo: (() => { try { return localStorage.getItem('casaSantoroModo') || 'mese'; } catch (e) { return 'mese'; } })(),
+  elenco: { periodo: '90', chi: '', tipo: '' }
 };
 
 /* =========================================================
@@ -275,7 +313,7 @@ function render() {
   if (S.vista === 'fam') h += vistaFamiglia();
   if (S.vista === 'cerca') h += vistaCerca();
   m.innerHTML = h;
-  if (S.vista === 'cal') caricaGoogleMese();
+  if (S.vista === "cal" && S.calModo !== "elenco") caricaGoogleMese();
 }
 
 /* =========================================================
@@ -397,11 +435,125 @@ function celleMese() {
   if (celle[35].getMonth() !== primo.getMonth()) celle.length = 35;
   return celle;
 }
+function interruttoreModo() {
+  return `<div class="modo">
+    <button class="${S.calModo !== 'elenco' ? 'on' : ''}" onclick="cambiaModo('mese')">🗓️ Mese</button>
+    <button class="${S.calModo === 'elenco' ? 'on' : ''}" onclick="cambiaModo('elenco')">📋 Elenco</button>
+  </div>`;
+}
+function cambiaModo(m) {
+  S.calModo = m;
+  try { localStorage.setItem('casaSantoroModo', m); } catch (e) {}
+  render();
+}
+
+/* ---------- Calendario come elenco (stile gestionale) ---------- */
+function badgeGiorni(data) {
+  const g = giorniA(data);
+  if (g < 0) return `<span class="badge b-red">Scaduto da ${-g} gg</span>`;
+  if (g === 0) return '<span class="badge b-red">Oggi!</span>';
+  if (g <= 15) return `<span class="badge b-orange">${g === 1 ? 'Domani' : 'Tra ' + g + ' gg'}</span>`;
+  if (g <= 30) return `<span class="badge b-yellow">Tra ${g} gg</span>`;
+  return `<span class="badge b-green">Tra ${g} gg</span>`;
+}
+const RIPETE = { settimanale: 'ogni settimana', mensile: 'ogni mese', annuale: 'ogni anno' };
+function prossimaVolta(o, da, a) {
+  for (let s = da; s <= a; s = addGiorni(s, 1)) if (siRipete(o, s)) return s;
+  return null;
+}
+function righeElenco() {
+  const E = S.elenco, oggiS = oggi();
+  const fine = E.periodo === 'tutto' ? addGiorni(oggiS, 730) : addGiorni(oggiS, +E.periodo);
+  const righe = [];
+  if (!E.tipo || E.tipo === 'doc') {
+    S.documenti.forEach(d => {
+      if (!d.scadenza || d.scadenza > fine) return;
+      if (E.chi && d.personaId !== E.chi) return;
+      const p = persona(d.personaId);
+      righe.push({ data: d.scadenza, cat: '📄 Documento', cosa: tipoInfo(d.tipo)[1] + ' ' + d.tipo, chi: p ? p.nome : '-', rif: d.numero || '-', note: d.note || '-', click: `apriDocumento('${d.id}')` });
+    });
+  }
+  if (!E.tipo || E.tipo === 'imp') {
+    S.impegni.forEach(o => {
+      const ids = String(o.persone || '').split(',').filter(Boolean);
+      if (E.chi && !ids.includes(E.chi)) return;
+      const ripete = o.ripeti && o.ripeti !== 'no';
+      // impegni singoli: anche quelli gia' passati nell'ultimo mese; ripetuti: solo la prossima volta
+      const s = ripete ? prossimaVolta(o, oggiS, fine) : (o.data <= fine && o.data >= addGiorni(oggiS, -30) ? o.data : null);
+      if (!s) return;
+      const c = catInfo(o.categoria);
+      righe.push({
+        data: s, cat: c[1] + ' ' + c[0], cosa: o.titolo + (ripete ? ' 🔁 ' + RIPETE[o.ripeti] : ''),
+        chi: ids.map(persona).filter(Boolean).map(x => x.nome).join(', ') || '-',
+        rif: [o.tuttoIlGiorno === 'si' || !o.oraInizio ? '' : o.oraInizio + (o.oraFine ? '–' + o.oraFine : ''), o.luogo].filter(Boolean).join(' · ') || '-',
+        note: o.note || '-', click: `apriImpegno('${o.id}')`
+      });
+    });
+  }
+  if (!E.tipo || E.tipo === 'comp') {
+    S.persone.forEach(p => {
+      if (!p.nascita || (E.chi && p.id !== E.chi)) return;
+      let s = oggiS.slice(0, 4) + p.nascita.slice(4);
+      if (s < oggiS) s = (+oggiS.slice(0, 4) + 1) + p.nascita.slice(4);
+      if (s > fine) return;
+      righe.push({ data: s, cat: '🎂 Compleanno', cosa: 'Compleanno di ' + p.nome, chi: p.nome, rif: 'Fa ' + (+s.slice(0, 4) - +p.nascita.slice(0, 4)) + ' anni', note: '-', click: `apriPersona('${p.id}')` });
+    });
+  }
+  righe.sort((a, b) => a.data < b.data ? -1 : a.data > b.data ? 1 : 0);
+  return righe;
+}
+function vistaElenco() {
+  const E = S.elenco;
+  const righe = righeElenco();
+  const sel = (v, x) => v === x ? 'selected' : '';
+  let h = interruttoreModo() + `
+  <div class="filtri">
+    <select class="in" onchange="S.elenco.periodo=this.value;render()">
+      <option value="30" ${sel(E.periodo, '30')}>Prossimi 30 giorni</option>
+      <option value="90" ${sel(E.periodo, '90')}>Prossimi 3 mesi</option>
+      <option value="365" ${sel(E.periodo, '365')}>Prossimo anno</option>
+      <option value="tutto" ${sel(E.periodo, 'tutto')}>Tutto</option>
+    </select>
+    <select class="in" onchange="S.elenco.chi=this.value;render()">
+      <option value="">Tutta la famiglia</option>
+      ${S.persone.map(p => `<option value="${p.id}" ${sel(E.chi, p.id)}>${esc(p.emoji || '')} ${esc(p.nome)}</option>`).join('')}
+    </select>
+    <select class="in" onchange="S.elenco.tipo=this.value;render()">
+      <option value="">Tutto</option>
+      <option value="doc" ${sel(E.tipo, 'doc')}>Solo documenti</option>
+      <option value="imp" ${sel(E.tipo, 'imp')}>Solo impegni</option>
+      <option value="comp" ${sel(E.tipo, 'comp')}>Solo compleanni</option>
+    </select>
+  </div>
+  <div class="legenda"><b>Legenda:</b>
+    <span><i style="background:var(--danger)"></i>Scaduto</span>
+    <span><i style="background:#f97316"></i>Entro 15 gg</span>
+    <span><i style="background:#eab308"></i>16-30 gg</span>
+    <span><i style="background:var(--ok)"></i>Oltre 30 gg</span>
+  </div>`;
+  if (!righe.length) return h + `<div class="card"><div class="empty"><b>🌴</b>Niente in questo periodo. Che pace!</div></div>`;
+  h += `<p class="mini" style="margin:0 0 8px">${righe.length} ${righe.length === 1 ? 'cosa' : 'cose'} · gli scaduti li vedi sempre in cima, così non ti scappano</p>
+  <div class="tabella"><table>
+    <thead><tr><th>Data</th><th>Categoria</th><th>Cosa</th><th>Chi</th><th>Riferimento</th><th>Giorni</th><th>Note</th></tr></thead>
+    <tbody>${righe.map(r => `<tr onclick="${r.click}">
+      <td class="data">${fData(r.data, true)}<span class="anno">${r.data.slice(0, 4)}</span></td>
+      <td data-l="Categoria">${esc(r.cat)}</td>
+      <td class="cosa">${esc(r.cosa)}</td>
+      <td data-l="Chi"${r.chi === "-" ? " class=\"vuoto\"" : ""}>${esc(r.chi)}</td>
+      <td data-l="Riferimento"${r.rif === "-" ? " class=\"vuoto\"" : ""}>${esc(r.rif)}</td>
+      <td class="giorni">${badgeGiorni(r.data)}</td>
+      <td data-l="Note" class="note${r.note === "-" ? " vuoto" : ""}">${esc(r.note)}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+  return h;
+}
+
 function vistaCalendario() {
+  if (S.calModo === 'elenco') return vistaElenco();
   if (!S.mese) { const d = new Date(); S.mese = new Date(d.getFullYear(), d.getMonth(), 1); }
   if (!S.giornoSel) S.giornoSel = oggi();
   const celle = celleMese(), meseN = S.mese.getMonth(), oggiS = oggi();
-  let h = `<div class="calhead">
+  let h = interruttoreModo() + `<div class="calhead">
     <button class="icon-btn" onclick="spostaMese(-1)">‹</button>
     <h2>${MESI[meseN]} ${S.mese.getFullYear()}</h2>
     <button class="btn sec small" onclick="meseOggi()">Oggi</button>
