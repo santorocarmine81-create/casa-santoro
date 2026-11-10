@@ -20,7 +20,8 @@ var CAMPI = {
   Impegni:   ['id', 'titolo', 'categoria', 'data', 'oraInizio', 'oraFine', 'tuttoIlGiorno', 'persone', 'luogo', 'note', 'ripeti', 'ripetiFino', 'promemoria', 'eventi', 'aggiornato'],
   Spesa:     ['id', 'nome', 'quantita', 'reparto', 'preso', 'aggiuntoDa', 'aggiornato'],
   Progetti:  ['id', 'titolo', 'descrizione', 'categoria', 'priorita', 'stato', 'costo', 'messoDaParte', 'dataObiettivo', 'persone', 'passi', 'note', 'eventi', 'aggiornato'],
-  Numeri:    ['id', 'nome', 'categoria', 'telefono', 'telefono2', 'email', 'indirizzo', 'note', 'preferito']
+  Numeri:    ['id', 'nome', 'categoria', 'telefono', 'telefono2', 'email', 'indirizzo', 'note', 'preferito'],
+  Pagamenti: ['id', 'titolo', 'categoria', 'importo', 'scadenza', 'pagata', 'dataPagamento', 'metodo', 'periodo', 'personaId', 'ripeti', 'files', 'note', 'eventi', 'aggiornato']
 };
 
 // Impostazioni comuni a tutta la famiglia (il nome e l'email di promemoria invece sono di ciascuno)
@@ -236,6 +237,7 @@ function getTutto() {
     spesa: leggi_('Spesa'),
     progetti: leggi_('Progetti'),
     numeri: leggi_('Numeri'),
+    pagamenti: leggi_('Pagamenti'),
     ignorati: leggi_('Ignorati').map(function (x) { return x.id; }),
     impostazioni: leggiImpostazioni_(),
     link: { cartella: cartella_().getUrl(), foglio: foglio_().getUrl() },
@@ -250,7 +252,7 @@ function leggiSezione(tipo) {
   return leggi_(tipo);
 }
 
-var CON_CALENDARIO = { Documenti: true, Impegni: true, Progetti: true };
+var CON_CALENDARIO = { Documenti: true, Impegni: true, Progetti: true, Pagamenti: true };
 
 function salva(tipo, obj) {
   controllo_();
@@ -297,7 +299,7 @@ function elimina(tipo, id) {
   if (!vecchio) return true;
   if (tipo === 'Persone' && vecchio.accesso === 'si') throw new Error('Prima togli la condivisione dell\'app con questa persona.');
   if (vecchio.eventi) cancellaEventi_(vecchio.eventi);
-  if (tipo === 'Documenti' && vecchio.files) {
+  if ((tipo === 'Documenti' || tipo === 'Pagamenti') && vecchio.files) {
     JSON.parse(vecchio.files || '[]').forEach(function (f) { cestinaFile(f.id); });
   }
   cancellaRiga_(tipo, id);
@@ -533,7 +535,7 @@ function sincronizzaTutto() {
 function aggiornaEventiPersona_(personaId) {
   Object.keys(CON_CALENDARIO).forEach(function (tipo) {
     leggi_(tipo).forEach(function (o) {
-      var coinvolto = tipo === 'Documenti' ? o.personaId === personaId : String(o.persone || '').split(',').indexOf(personaId) >= 0;
+      var coinvolto = (tipo === 'Documenti' || tipo === 'Pagamenti') ? o.personaId === personaId : String(o.persone || '').split(',').indexOf(personaId) >= 0;
       if (!coinvolto) return;
       cancellaEventi_(o.eventi);
       try { o.eventi = creaEventi_(tipo, o); } catch (e) { o.eventi = ''; }
@@ -597,6 +599,7 @@ function creaEventi_(tipo, o) {
   if (tipo === 'Documenti') return eventiDocumento_(o);
   if (tipo === 'Impegni') return eventiImpegno_(o);
   if (tipo === 'Progetti') return eventiProgetto_(o);
+  if (tipo === 'Pagamenti') return eventiPagamento_(o);
   return '';
 }
 
@@ -675,6 +678,28 @@ function eventiImpegno_(o) {
   return cal.getId() + '::' + ev.getId();
 }
 
+function euro_(n) {
+  var v = parseFloat(String(n || '').replace(',', '.'));
+  return isNaN(v) ? '' : v.toFixed(2).replace('.', ',') + ' €';
+}
+
+/** Bollette e pagamenti: l'avviso nel calendario c'e' solo finche' non e' pagata. */
+function eventiPagamento_(p) {
+  if (!p.scadenza || p.pagata === 'si') return '';
+  var cal = calendario_();
+  var chi = p.personaId ? nomePersona_(p.personaId) : '';
+  var importo = euro_(p.importo);
+  var ev = cal.createAllDayEvent('💶 Da pagare: ' + p.titolo + (importo ? ' – ' + importo : ''), dataDa_(p.scadenza), {
+    description: (p.periodo ? 'Periodo: ' + p.periodo + '\n' : '') + (p.metodo ? 'Come si paga: ' + p.metodo + '\n' : '') +
+      (chi ? 'Intestata a: ' + chi + '\n' : '') + (p.note ? p.note + '\n' : '') + '\n(Messo qui dall\'app ' + NOME_APP + ')'
+  });
+  ev.setTag(TAG_EVENTO, p.id);
+  ev.removeAllReminders();
+  ev.addPopupReminder(60 * 24 * 3);  // tre giorni prima
+  ev.addPopupReminder(15 * 60);      // il giorno prima alle 9
+  return cal.getId() + '::' + ev.getId();
+}
+
 function eventiProgetto_(p) {
   if (!p.dataObiettivo || p.stato === 'fatto') return '';
   var cal = calendario_();
@@ -733,9 +758,13 @@ function controlloGiornaliero() {
   leggi_('Impegni').forEach(function (o) {
     if (o.data === sDomani) righe.push('📌 Domani: ' + o.titolo + (o.oraInizio ? ' alle ' + o.oraInizio : ''));
   });
-  leggi_('Progetti').forEach(function (p) {
-    if (p.dataObiettivo && p.stato !== 'fatto' && Math.round((dataDa_(p.dataObiettivo) - oggi) / 86400000) === 7)
-      righe.push('🎯 Tra una settimana: obiettivo "' + p.titolo + '"');
+  leggi_('Pagamenti').forEach(function (p) {
+    if (!p.scadenza || p.pagata === 'si') return;
+    var g = Math.round((dataDa_(p.scadenza) - oggi) / 86400000);
+    var cosa = p.titolo + (euro_(p.importo) ? ' (' + euro_(p.importo) + ')' : '');
+    if (g < 0 && g >= -30 && (-g) % 7 === 1) righe.push('🔴 Non risulta pagata: ' + cosa + ', scaduta il ' + itData_(p.scadenza));
+    else if (g === 0) righe.push('💶 OGGI scade il pagamento: ' + cosa);
+    else if (g === 1 || g === 3) righe.push('💶 Tra ' + g + (g === 1 ? ' giorno' : ' giorni') + ' da pagare: ' + cosa);
   });
   if (!righe.length) return;
   var nome = nomeUtente_();

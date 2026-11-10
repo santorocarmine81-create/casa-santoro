@@ -234,9 +234,8 @@ registra('pagina caricata');
 
 <header><div class="wrap">
   <h1>🏠 Casa <span>Santoro</span><em>/Longobardi</em></h1>
-  <button class="icon-btn" onclick="vai('fam')" title="Famiglia">👨‍👩‍👦</button>
   <button class="icon-btn" onclick="ricarica()" title="Aggiorna">🔄</button>
-  <button class="icon-btn" onclick="apriImpostazioni()" title="Impostazioni">⚙️</button>
+  <button class="icon-btn" onclick="menuAltro()" title="Altro: famiglia, importa, impostazioni">☰</button>
 </div></header>
 
 <main class="wrap" id="main"></main>
@@ -246,8 +245,8 @@ registra('pagina caricata');
   <button data-v="home" onclick="vai('home')"><b>🏡</b>Casa</button>
   <button data-v="cal" onclick="vai('cal')"><b>📅</b>Calendario</button>
   <button data-v="doc" onclick="vai('doc')"><b>📂</b>Documenti</button>
+  <button data-v="pag" onclick="vai('pag')"><b>💶</b>Bollette</button>
   <button data-v="spesa" onclick="vai('spesa')"><b>🛒</b>Spesa</button>
-  <button data-v="altro" onclick="menuAltro()"><b>☰</b>Altro</button>
 </nav>
 <div id="toast"></div>
 <input type="file" id="inFoto" accept="image/*" capture="environment" hidden>
@@ -305,7 +304,7 @@ const GIORNI = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
 const S = {
   persone: [], documenti: [], impegni: [], spesa: [], progetti: [], numeri: [], ignorati: [], imp: {}, link: {},
   io: { email: '', nome: '', proprietario: true, emailAttiva: false },
-  filtroProgetti: '', cercaNumeri: '',
+  pagamenti: [], filtroPag: 'da', catPag: '',
   vista: 'home', mese: null, giornoSel: null, google: {}, googleCarico: {},
   filtroPersona: '', cerca: '', scan: null, pcFiles: {},
   calModo: (() => { try { return localStorage.getItem('casaSantoroModo') || 'mese'; } catch (e) { return 'mese'; } })(),
@@ -361,7 +360,7 @@ function statoScadenza(d) {
 function carica() {
   return api('getTutto').then(r => {
     S.persone = r.persone; S.documenti = r.documenti; S.impegni = r.impegni; S.ignorati = r.ignorati || [];
-    S.spesa = r.spesa || []; S.progetti = r.progetti || []; S.numeri = r.numeri || [];
+    S.spesa = r.spesa || []; S.pagamenti = r.pagamenti || [];
     S.imp = r.impostazioni; S.link = r.link || {}; S.io = r.io || S.io;
     $('#caricamento').style.display = 'none';
     render();
@@ -376,7 +375,7 @@ function vai(v) {
   if (v === 'spesa') aggiornaSpesa(true);
 }
 
-const SCHEDA_DI = { cerca: 'doc', importa: 'doc', prog: 'altro', num: 'altro', fam: 'altro' };
+const SCHEDA_DI = { cerca: 'doc', importa: 'doc', fam: '' };
 function render() {
   const scheda = SCHEDA_DI[S.vista] || S.vista;
   document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === scheda));
@@ -389,8 +388,7 @@ function render() {
   if (S.vista === 'fam') h += vistaFamiglia();
   if (S.vista === 'cerca') h += vistaCerca();
   if (S.vista === 'spesa') h += vistaSpesa();
-  if (S.vista === 'prog') h += vistaProgetti();
-  if (S.vista === 'num') h += vistaNumeri();
+  if (S.vista === 'pag') h += vistaPagamenti();
   if (S.vista === 'importa') h += vistaImporta();
   m.innerHTML = h;
   if (S.vista === "cal" && S.calModo !== "elenco") caricaGoogleMese();
@@ -431,6 +429,11 @@ function coseDelGiorno(s, conGoogle) {
     const pre = preavvisoDi(d);
     if (pre > 0 && addGiorni(d.scadenza, -pre) === s) out.push({ tipo: 'doc', id: d.id, ico: '⏰', colore: '#f59e0b', titolo: 'Da rinnovare: ' + nome, ora: '', sotto: 'Scade il ' + fData(d.scadenza) });
   });
+  S.pagamenti.forEach(p => {
+    if (p.pagata === 'si' || p.scadenza !== s) return;
+    const c = catPag(p.categoria);
+    out.push({ tipo: 'pag', id: p.id, ico: c[1], colore: giorniA(s) < 0 ? '#e8453c' : '#d4a017', titolo: 'Da pagare: ' + p.titolo + (numero(p.importo) ? ' – ' + euro(p.importo) : ''), ora: '', sotto: [p.periodo, p.metodo].filter(Boolean).join(' · ') || 'Bolletta / pagamento' });
+  });
   S.persone.forEach(p => {
     if (p.nascita && p.nascita.slice(5) === s.slice(5) && s >= p.nascita) {
       const anni = +s.slice(0, 4) - +p.nascita.slice(0, 4);
@@ -447,7 +450,7 @@ function coseDelGiorno(s, conGoogle) {
 }
 
 function rigaCosa(c, data) {
-  const click = c.tipo === 'imp' ? `apriImpegno('${c.id}')` : c.tipo === 'doc' ? `apriDocumento('${c.id}')` : c.tipo === 'per' ? `apriPersona('${c.id}')` : '';
+  const click = c.tipo === 'imp' ? `apriImpegno('${c.id}')` : c.tipo === 'doc' ? `apriDocumento('${c.id}')` : c.tipo === 'per' ? `apriPersona('${c.id}')` : c.tipo === 'pag' ? `apriPagamento('${c.id}')` : '';
   return `<div class="row" ${click ? `onclick="${click}"` : 'style="cursor:default"'}>
     <div class="ico" style="background:${c.colore}22">${c.ico}</div>
     <div class="txt"><div class="t">${esc(c.titolo)}</div><div class="s">${data ? esc(quando(data)) + ' · ' : ''}${esc(c.sotto)}</div></div>
@@ -473,20 +476,24 @@ function vistaHome() {
   const presto = S.documenti.filter(d => d.scadenza && giorniA(d.scadenza) >= 0 && giorniA(d.scadenza) <= Math.max(preavvisoDi(d), 7)).sort((a, b) => a.scadenza < b.scadenza ? -1 : 1);
 
   const daPrendere = S.spesa.filter(x => x.preso !== 'si').length;
-  const inCorso = S.progetti.filter(p => p.stato === 'inCorso').length;
   const scadNum = scaduti.length + presto.length;
+  const daPagare = S.pagamenti.filter(p => p.pagata !== 'si' && p.scadenza && giorniA(p.scadenza) <= 30).sort((a, b) => a.scadenza < b.scadenza ? -1 : 1);
+  const totDaPagare = daPagare.reduce((s, p) => s + numero(p.importo), 0);
   h += `<div class="tiles">
     <button onclick="vai('doc')"><b>📂</b>Documenti<small>${scadNum ? scadNum + ' da guardare' : S.documenti.length + ' in archivio'}</small></button>
     <button onclick="vai('cal')"><b>📅</b>Calendario<small>${S.impegni.length} impegni</small></button>
+    <button onclick="vai('pag')"><b>💶</b>Bollette<small>${daPagare.length ? daPagare.length + ' da pagare' : 'Tutto pagato'}</small></button>
     <button onclick="vai('spesa')"><b>🛒</b>Spesa<small>${daPrendere ? daPrendere + ' da prendere' : 'Lista vuota'}</small></button>
-    <button onclick="vai('prog')"><b>🎯</b>Progetti<small>${inCorso ? inCorso + ' in corso' : S.progetti.length + ' idee'}</small></button>
-    <button onclick="vai('num')"><b>📞</b>Numeri utili<small>${S.numeri.length} contatti</small></button>
     <button onclick="vai('fam')"><b>👨‍👩‍👦</b>Famiglia<small>${S.persone.length} persone</small></button>
+    <button onclick="vai('importa')"><b>📥</b>Importa<small>Da una cartella</small></button>
   </div>`;
 
   h += '<div class="grid2">';
   if (scaduti.length) {
     h += `<div class="card"><h2 style="margin-top:0">🚨 Occhio, sono scaduti!</h2>${scaduti.map(rigaDoc).join('')}</div>`;
+  }
+  if (daPagare.length) {
+    h += `<div class="card"><h2 style="margin-top:0">💶 Da pagare <span class="mini">${euro(totDaPagare)}</span></h2>${daPagare.map(rigaPagamento).join('')}</div>`;
   }
   h += `<div class="card"><h2 style="margin-top:0">⏳ Stanno per scadere</h2>${presto.length ? presto.map(rigaDoc).join('') : '<div class="empty"><b>😎</b>Tutto tranquillo, nessuna scadenza vicina.</div>'}</div>`;
 
@@ -576,6 +583,14 @@ function righeElenco() {
       });
     });
   }
+  if (!E.tipo || E.tipo === 'pag') {
+    S.pagamenti.forEach(p => {
+      if (p.pagata === 'si' || !p.scadenza || p.scadenza > fine) return;
+      if (E.chi && p.personaId !== E.chi) return;
+      const c = catPag(p.categoria), chi = persona(p.personaId);
+      righe.push({ data: p.scadenza, cat: c[1] + ' ' + c[0], cosa: 'Da pagare: ' + p.titolo, chi: chi ? chi.nome : '-', rif: [euro(p.importo), p.metodo].filter(Boolean).join(' · ') || '-', note: p.periodo || p.note || '-', click: `apriPagamento('${p.id}')` });
+    });
+  }
   if (!E.tipo || E.tipo === 'comp') {
     S.persone.forEach(p => {
       if (!p.nascita || (E.chi && p.id !== E.chi)) return;
@@ -608,6 +623,7 @@ function vistaElenco() {
       <option value="">Tutto</option>
       <option value="doc" ${sel(E.tipo, 'doc')}>Solo documenti</option>
       <option value="imp" ${sel(E.tipo, 'imp')}>Solo impegni</option>
+      <option value="pag" ${sel(E.tipo, 'pag')}>Solo bollette e pagamenti</option>
       <option value="comp" ${sel(E.tipo, 'comp')}>Solo compleanni</option>
     </select>
   </div>
@@ -784,13 +800,14 @@ function personaScelta(boxId) { const b = document.querySelector('#' + boxId + '
 async function caricaFiles(lista) {
   const p = persona(personaScelta('fPersona'));
   const tipo = ($('#fTipo') && $('#fTipo').value.trim()) || 'Documento';
+  const cartella = F.cartella || (p ? p.nome : 'Senza nome');
   for (const file of lista) {
     try {
       if (file.size > 30 * 1024 * 1024) { toast('“' + file.name + '” è troppo grande (max 30 MB)'); continue; }
       toast('Carico “' + file.name + '”… ⏳', 60000);
       const pronto = await preparaFile(file);
       const nome = tipo + (p ? ' - ' + p.nome : '') + ' - ' + pronto.nome;
-      const r = await api('caricaFile', p ? p.nome : 'Senza nome', nome, pronto.mime, pronto.base64);
+      const r = await api('caricaFile', cartella, nome, pronto.mime, pronto.base64);
       F.files.push(r); F.nuovi.push(r.id);
       disegnaFiles(); toast('File caricato 👍');
     } catch (e) { errore(e); }
@@ -1638,219 +1655,231 @@ function eliminaVoceSpesa(id) {
 }
 
 /* =========================================================
-   Progetti futuri
+   Bollette e pagamenti
    ========================================================= */
-const CAT_PROG = [['Viaggio', '✈️'], ['Casa', '🏠'], ['Auto', '🚗'], ['Acquisti', '🛍️'], ['Famiglia', '👨‍👩‍👦'], ['Festa', '🎉'], ['Studio', '🎓'], ['Salute', '🩺'], ['Lavoro', '💼'], ['Altro', '💡']];
-const STATI = { idea: ['💡', 'Idea', 'b-grey'], inCorso: ['🚧', 'In corso', 'b-orange'], fatto: ['✅', 'Fatto!', 'b-green'] };
-const PRIORITA = { alta: ['🔥', 'Priorità alta'], media: ['👍', 'Priorità media'], bassa: ['💤', 'Con calma'] };
-const euro = n => (Math.round(+n || 0)).toLocaleString('it-IT') + ' €';
-const passiDi = p => { try { return JSON.parse(p.passi || '[]'); } catch (e) { return []; } };
-const catProg = c => CAT_PROG.find(x => x[0] === c) || CAT_PROG[CAT_PROG.length - 1];
-
-function vistaProgetti() {
-  const f = S.filtroProgetti;
-  const ordS = { inCorso: 0, idea: 1, fatto: 2 }, ordP = { alta: 0, media: 1, bassa: 2 };
-  const lista = S.progetti.filter(p => !f || p.stato === f).sort((a, b) =>
-    (ordS[a.stato] ?? 1) - (ordS[b.stato] ?? 1) || (ordP[a.priorita] ?? 1) - (ordP[b.priorita] ?? 1) || (a.dataObiettivo || '9') .localeCompare(b.dataObiettivo || '9'));
-  const aperti = S.progetti.filter(p => p.stato !== 'fatto' && +p.costo > 0);
-  const serve = aperti.reduce((s, p) => s + (+p.costo || 0), 0), messi = aperti.reduce((s, p) => s + Math.min(+p.messoDaParte || 0, +p.costo || 0), 0);
-  let h = `<div class="calhead"><h2>🎯 Progetti futuri</h2><button class="btn small" onclick="apriProgetto()">➕ Nuovo</button></div>`;
-  if (serve) h += `<div class="card"><b>💰 Il salvadanaio</b><div class="mini">Per i progetti aperti servono ${euro(serve)}: ne avete messi da parte ${euro(messi)}.</div>${barra(messi / serve, 'var(--ok)')}</div>`;
-  h += `<div class="chips">
-    ${[['', 'Tutti'], ['idea', '💡 Idee'], ['inCorso', '🚧 In corso'], ['fatto', '✅ Fatti']].map(([k, t]) => `<button class="chip ${f === k ? 'on' : ''}" onclick="S.filtroProgetti='${k}';render()">${t}</button>`).join('')}
-  </div>`;
-  if (!lista.length) return h + `<div class="card"><div class="empty"><b>🌱</b>${S.progetti.length ? 'Niente qui.' : 'Nessun progetto ancora. Un viaggio? La cucina nuova? Scrivetelo qui, così non resta solo un sogno!'}</div></div>`;
-  h += '<div class="grid2">' + lista.map(p => {
-    const st = STATI[p.stato] || STATI.idea, pr = PRIORITA[p.priorita] || PRIORITA.media, passi = passiDi(p);
-    const fatti = passi.filter(x => x.f).length, chi = String(p.persone || '').split(',').map(persona).filter(Boolean);
-    return `<div class="card prog ${p.stato === 'fatto' ? 'chiuso' : ''}" onclick="apriProgetto('${p.id}')">
-      <div class="prog-top"><span class="av" style="background:var(--warn-soft)">${catProg(p.categoria)[1]}</span>
-        <div class="txt"><div class="t">${esc(p.titolo)}</div>
-        <div style="margin-top:3px"><span class="badge ${st[2]}">${st[0]} ${st[1]}</span> <span class="badge b-grey">${pr[0]} ${pr[1]}</span></div></div></div>
-      ${p.descrizione ? `<p class="mini" style="margin:8px 0 0">${esc(p.descrizione)}</p>` : ''}
-      ${passi.length ? `<div class="mini" style="margin-top:8px">✔️ ${fatti} passi su ${passi.length}</div>${barra(fatti / passi.length, 'var(--accent)')}` : ''}
-      ${+p.costo ? `<div class="mini" style="margin-top:8px">💰 ${euro(p.messoDaParte)} su ${euro(p.costo)}</div>${barra((+p.messoDaParte || 0) / (+p.costo), 'var(--ok)')}` : ''}
-      ${p.dataObiettivo ? `<div class="mini" style="margin-top:8px">🎯 Entro il ${fData(p.dataObiettivo)} ${p.stato !== 'fatto' ? badgeGiorni(p.dataObiettivo) : ''}</div>` : ''}
-      ${chi.length ? `<div class="mini" style="margin-top:6px">${chi.map(x => esc(x.emoji || '🙂') + ' ' + esc(x.nome)).join(' · ')}</div>` : ''}
-    </div>`;
-  }).join('') + '</div>';
-  return h;
+const CAT_PAG = [
+  ['Luce', '💡', '#f59e0b'], ['Gas', '🔥', '#ef6f8f'], ['Acqua', '💧', '#00a3d9'], ['Telefono e internet', '📶', '#6b8cff'],
+  ['Rifiuti (TARI)', '🗑️', '#22b07d'], ['Tasse e IMU', '🏛️', '#5b6b7f'], ['Mutuo e prestiti', '🏦', '#a17cf0'],
+  ['Affitto', '🔑', '#8d6e63'], ['Condominio', '🏢', '#7c9cbf'], ['Assicurazioni', '🛡️', '#12b5a5'], ['Auto e bollo', '🚗', '#5b6b7f'],
+  ['Scuola e asilo', '🏫', '#ff9f1c'], ['Sport e corsi', '⚽', '#22b07d'], ['Abbonamenti', '🎫', '#ef6f8f'], ['Salute', '🩺', '#ef6f8f'],
+  ['Altro', '💶', '#ff6b57']
+];
+const METODI = ['Domiciliazione', 'PagoPA', 'Bonifico', 'Carta', 'Bollettino', 'F24', 'Contanti', 'Altro'];
+const RIPETI_PAG = [['no', 'Una volta sola'], ['1', 'Ogni mese'], ['2', 'Ogni 2 mesi'], ['3', 'Ogni 3 mesi'], ['4', 'Ogni 4 mesi'], ['6', 'Ogni 6 mesi'], ['12', 'Ogni anno']];
+const SUGGERIMENTI_PAG = ['Luce', 'Gas', 'Acqua', 'Internet', 'Telefono', 'TARI', 'IMU', 'Mutuo', 'Condominio', 'Affitto', 'Bollo auto', 'Assicurazione auto', 'Canone RAI', 'Asilo nido', 'Mensa scolastica', 'Palestra', 'Prestito'];
+const catPag = c => CAT_PAG.find(x => x[0] === c) || CAT_PAG[CAT_PAG.length - 1];
+const numero = n => { const v = parseFloat(String(n == null ? '' : n).replace(/\s/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.')); return isNaN(v) ? 0 : v; };
+const euro = n => numero(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+function addMesi(s, n) {
+  const d = daIso(s), giorno = d.getDate();
+  d.setDate(1); d.setMonth(d.getMonth() + n);
+  const ultimo = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(giorno, ultimo));
+  return iso(d);
 }
 function barra(q, colore) {
   const pc = Math.max(0, Math.min(1, q || 0)) * 100;
   return `<div class="barra"><i style="width:${pc}%;background:${colore}"></i></div>`;
 }
-let PG = null; // passi del progetto in modifica
-function apriProgetto(id) {
-  const p = id ? Object.assign({}, S.progetti.find(x => x.id === id)) : { titolo: '', descrizione: '', categoria: 'Altro', priorita: 'media', stato: 'idea', costo: '', messoDaParte: '', dataObiettivo: '', persone: '', passi: '[]', note: '' };
-  PG = passiDi(p);
-  const sel = String(p.persone || '').split(',');
-  apriFinestra(`<h3>${id ? '✏️ Progetto' : '🎯 Nuovo progetto'}<button class="icon-btn x" onclick="chiudiFinestra()">✕</button></h3>
-    <label class="f">Cosa vorreste fare?</label>
-    <input class="in" id="gTitolo" value="${esc(p.titolo)}" placeholder="Es. Vacanza in Sardegna, cucina nuova…">
-    <label class="f">Due parole in più</label>
-    <textarea class="in" id="gDescr" placeholder="Facoltativo">${esc(p.descrizione)}</textarea>
-    <label class="f">Tipo</label>
-    <div class="pick" id="gCat">${CAT_PROG.map(c => `<button type="button" class="${c[0] === p.categoria ? 'on' : ''}" data-id="${c[0]}" onclick="scegliUno(this)">${c[1]} ${c[0]}</button>`).join('')}</div>
-    <label class="f">A che punto siete?</label>
-    <div class="pick" id="gStato">${Object.keys(STATI).map(k => `<button type="button" class="${k === p.stato ? 'on' : ''}" data-id="${k}" onclick="scegliUno(this)">${STATI[k][0]} ${STATI[k][1]}</button>`).join('')}</div>
-    <label class="f">Quanto è importante?</label>
-    <div class="pick" id="gPrio">${Object.keys(PRIORITA).map(k => `<button type="button" class="${k === p.priorita ? 'on' : ''}" data-id="${k}" onclick="scegliUno(this)">${PRIORITA[k][0]} ${PRIORITA[k][1]}</button>`).join('')}</div>
-    <div class="two">
-      <div><label class="f">Quanto costa (€)</label><input class="in" type="number" inputmode="decimal" min="0" id="gCosto" value="${esc(p.costo)}" placeholder="Circa"></div>
-      <div><label class="f">Già messi da parte (€)</label><input class="in" type="number" inputmode="decimal" min="0" id="gMessi" value="${esc(p.messoDaParte)}"></div>
-    </div>
-    <label class="f">Entro quando? (va anche nel calendario)</label>
-    <input class="in" type="date" id="gData" value="${esc(p.dataObiettivo)}">
-    <label class="f">Chi è coinvolto?</label>
-    <div class="pick" id="gPersone">${S.persone.map(x => `<button type="button" class="${sel.includes(x.id) ? 'on' : ''}" data-id="${x.id}" onclick="this.classList.toggle('on')">${esc(x.emoji || '🙂')} ${esc(x.nome)}</button>`).join('') || '<span class="mini">Ancora nessuno in famiglia</span>'}</div>
-    <label class="f">I passi da fare</label>
-    <div id="gPassi"></div>
-    <div class="spadd" style="margin-top:6px"><input class="in" id="gNuovoPasso" placeholder="Es. Chiedere un preventivo" onkeydown="if(event.key==='Enter')aggiungiPasso()"><button class="btn sec" onclick="aggiungiPasso()">➕</button></div>
-    <label class="f">Note</label>
-    <textarea class="in" id="gNote">${esc(p.note)}</textarea>
-    <div class="azioni">
-      ${id ? `<button class="btn danger" onclick="eliminaProgetto('${id}')">🗑️ Elimina</button>` : ''}
-      <button class="btn" id="gSalva" onclick="salvaProgetto('${id || ''}')">💾 Salva</button>
-    </div>`);
-  disegnaPassi();
-}
-function disegnaPassi() {
-  const box = $('#gPassi'); if (!box) return;
-  box.innerHTML = PG.length ? PG.map((x, i) => `<div class="sp-row ${x.f ? 'fatto' : ''}" onclick="PG[${i}].f=!PG[${i}].f;disegnaPassi()">
-    <span class="check">${x.f ? '✓' : ''}</span><div class="txt"><div class="t">${esc(x.t)}</div></div>
-    <button class="btn ghost small" onclick="event.stopPropagation();PG.splice(${i},1);disegnaPassi()">✕</button></div>`).join('')
-    : '<div class="mini">Spezzate il progetto in piccoli passi: è più facile partire 😉</div>';
-}
-function aggiungiPasso() {
-  const inp = $('#gNuovoPasso'), t = inp.value.trim();
-  if (!t) return;
-  PG.push({ t, f: false }); inp.value = ''; disegnaPassi(); inp.focus();
-}
-function salvaProgetto(id) {
-  const p = id ? Object.assign({}, S.progetti.find(x => x.id === id)) : {};
-  p.titolo = $('#gTitolo').value.trim();
-  if (!p.titolo) return toast('Scrivi cosa vorreste fare 🙂');
-  p.descrizione = $('#gDescr').value.trim();
-  p.categoria = personaScelta('gCat') || 'Altro';
-  p.stato = personaScelta('gStato') || 'idea';
-  p.priorita = personaScelta('gPrio') || 'media';
-  p.costo = $('#gCosto').value; p.messoDaParte = $('#gMessi').value;
-  p.dataObiettivo = $('#gData').value;
-  p.persone = Array.from(document.querySelectorAll('#gPersone button.on')).map(b => b.dataset.id).join(',');
-  const resto = $('#gNuovoPasso').value.trim(); if (resto) PG.push({ t: resto, f: false });
-  p.passi = JSON.stringify(PG);
-  p.note = $('#gNote').value.trim();
-  const btn = $('#gSalva'); btn.disabled = true; btn.textContent = 'Un attimo… ⏳';
-  api('salva', 'Progetti', p).then(r => {
-    const i = S.progetti.findIndex(x => x.id === r.obj.id);
-    if (i >= 0) S.progetti[i] = r.obj; else S.progetti.push(r.obj);
-    chiudiFinestra(); render();
-    toast(r.avviso || (r.obj.stato === 'fatto' ? 'Fatto! Complimenti 🎉🎉' : 'Salvato ✅' + (r.obj.dataObiettivo ? ' Obiettivo nel calendario 🎯' : '')), r.avviso ? 6000 : 2800);
-  }).catch(e => { btn.disabled = false; btn.textContent = '💾 Salva'; errore(e); });
-}
-function eliminaProgetto(id) {
-  chiedi('Cancello questo progetto?', 'Sparisce anche l\'obiettivo dal calendario.').then(si => {
-    if (!si) return;
-    api('elimina', 'Progetti', id).then(() => { S.progetti = S.progetti.filter(x => x.id !== id); chiudiFinestra(); render(); toast('Cancellato 👋'); }).catch(errore);
-  });
+// Indovina la categoria dal nome (es. "Enel luce" -> Luce)
+function indovinaCatPag(t) {
+  const n = norm(t);
+  const regole = [[/luce|enel|energia|elettric/, 'Luce'], [/\bgas\b|metano/, 'Gas'], [/acqua|idric|ausino|gori/, 'Acqua'],
+    [/tim|vodafone|wind|iliad|fastweb|internet|telefon|fibra/, 'Telefono e internet'], [/tari|rifiuti/, 'Rifiuti (TARI)'],
+    [/imu|tasi|f24|tass|agenzia entrate|irpef|canone rai/, 'Tasse e IMU'], [/mutuo|prestito|finanziament|findomestic|rata/, 'Mutuo e prestiti'],
+    [/affitto|pigione/, 'Affitto'], [/condomin/, 'Condominio'], [/assicuraz|polizza|unipol|allianz|generali/, 'Assicurazioni'],
+    [/bollo|auto|revisione|carburante/, 'Auto e bollo'], [/asilo|nido|scuola|mensa|retta|libri/, 'Scuola e asilo'],
+    [/palestra|piscina|calcio|corso|danza|sport/, 'Sport e corsi'], [/netflix|spotify|abbonament|amazon|disney|sky|dazn/, 'Abbonamenti'],
+    [/ticket|farmac|medic|visita|dentist/, 'Salute']];
+  const r = regole.find(x => x[0].test(n));
+  return r ? r[1] : 'Altro';
 }
 
-/* =========================================================
-   Numeri utili
-   ========================================================= */
-const CAT_NUM = [['Medici e salute', '🩺'], ['Scuola', '🏫'], ['Guasti e casa', '🔧'], ['Uffici e servizi', '🏛️'], ['Auto e trasporti', '🚗'], ['Lavoro', '💼'], ['Famiglia e amici', '👨‍👩‍👦'], ['Chiesa', '🙏'], ['Negozi', '🛍️'], ['Altro', '📌']];
-const EMERGENZE = [['112', 'Emergenze', '🚨'], ['118', 'Ambulanza', '🚑'], ['115', 'Vigili del fuoco', '🚒'], ['113', 'Polizia', '🚓'], ['1530', 'Guardia costiera', '⚓']];
-const catNum = c => CAT_NUM.find(x => x[0] === c) || CAT_NUM[CAT_NUM.length - 1];
-const telPulito = n => String(n || '').replace(/[^\d+]/g, '');
-function whatsapp(n) {
-  // WhatsApp solo per i cellulari: italiani (3xx) o esteri scritti con +/00
-  let d = String(n || '').trim(), estero = false;
-  if (d.startsWith('+')) { d = d.slice(1).replace(/\D/g, ''); estero = true; }
-  else { d = d.replace(/\D/g, ''); if (d.startsWith('00')) { d = d.slice(2); estero = true; } else if (d.startsWith('3')) d = '39' + d; }
-  if (/^393\d{8,9}$/.test(d)) return WEB + 'wa.me/' + d;
-  if (estero && !d.startsWith('39') && d.length > 8) return WEB + 'wa.me/' + d;
-  return '';
+function statoPagamento(p) {
+  if (p.pagata === 'si') return { cls: 'b-green', txt: 'Pagata' + (p.dataPagamento ? ' il ' + fData(p.dataPagamento) : '') };
+  if (!p.scadenza) return { cls: 'b-grey', txt: 'Senza scadenza' };
+  const g = giorniA(p.scadenza);
+  if (g < 0) return { cls: 'b-red', txt: 'Scaduta da ' + (-g) + ' gg' };
+  if (g === 0) return { cls: 'b-red', txt: 'Scade oggi!' };
+  if (g <= 7) return { cls: 'b-orange', txt: g === 1 ? 'Domani' : 'Tra ' + g + ' gg' };
+  if (g <= 30) return { cls: 'b-yellow', txt: 'Tra ' + g + ' gg' };
+  return { cls: 'b-grey', txt: fData(p.scadenza) };
 }
-function vistaNumeri() {
-  const q = norm(S.cercaNumeri);
-  let lista = S.numeri.filter(n => !q || norm([n.nome, n.categoria, n.note, n.telefono, n.indirizzo].join(' ')).includes(q));
-  lista.sort((a, b) => a.nome.localeCompare(b.nome));
-  let h = `<div class="calhead"><h2>📞 Numeri utili</h2><button class="btn small" onclick="apriNumero()">➕ Nuovo</button></div>
-  <div class="card"><b>🚨 Emergenze</b><div class="emerg">${EMERGENZE.map(([n, t, i]) => `<a href="tel:${n}" target="_top"><b>${i} ${n}</b><span>${t}</span></a>`).join('')}</div></div>
-  <input class="search" placeholder="🔎 Cerca… (es. pediatra, idraulico)" value="${esc(S.cercaNumeri)}" oninput="S.cercaNumeri=this.value;$('#listaNum').innerHTML=listaNumeriHtml()">
-  <div id="listaNum">${listaNumeriHtml()}</div>`;
-  return h;
-}
-function listaNumeriHtml() {
-  const q = norm(S.cercaNumeri);
-  const lista = S.numeri.filter(n => !q || norm([n.nome, n.categoria, n.note, n.telefono, n.indirizzo].join(' ')).includes(q)).sort((a, b) => a.nome.localeCompare(b.nome));
-  if (!lista.length) return `<div class="card"><div class="empty"><b>📒</b>${S.numeri.length ? 'Nessuno con questo nome.' : 'Rubrica vuota. Metti il pediatra, il medico di base, la scuola, l\'idraulico… quelli che servono sempre all\'improvviso!'}</div></div>`;
-  let h = '';
-  const pref = lista.filter(n => n.preferito === 'si');
-  if (pref.length && !q) h += `<div class="card"><div class="sp-rep">⭐ Preferiti</div>${pref.map(rigaNumero).join('')}</div>`;
-  CAT_NUM.forEach(([c, ico]) => {
-    const v = lista.filter(n => catNum(n.categoria)[0] === c && (q || n.preferito !== 'si'));
-    if (v.length) h += `<div class="card"><div class="sp-rep">${ico} ${c}</div>${v.map(rigaNumero).join('')}</div>`;
-  });
-  return h;
-}
-function rigaNumero(n) {
-  const wa = whatsapp(n.telefono2) || whatsapp(n.telefono);
-  const stop = 'onclick="event.stopPropagation()"';
-  return `<div class="row num" onclick="apriNumero('${n.id}')">
-    <div class="ico" style="background:var(--accent-soft)">${catNum(n.categoria)[1]}</div>
-    <div class="txt"><div class="t">${n.preferito === 'si' ? '⭐ ' : ''}${esc(n.nome)}</div>
-      <div class="s">${esc([n.telefono, n.telefono2].filter(Boolean).join(' · '))}${n.note ? ' · ' + esc(n.note) : ''}</div>
-      <div class="azn">
-        ${n.telefono ? `<a class="btn teal small" href="tel:${esc(telPulito(n.telefono))}" target="_top" ${stop}>📞 Chiama</a>` : ''}
-        ${n.telefono2 ? `<a class="btn sec small" href="tel:${esc(telPulito(n.telefono2))}" target="_top" ${stop}>📱 Cellulare</a>` : ''}
-        ${wa ? `<a class="btn sec small" href="${esc(wa)}" target="_blank" ${stop}>💬 WhatsApp</a>` : ''}
-        ${n.email ? `<a class="btn sec small" href="mailto:${esc(n.email)}" target="_top" ${stop}>✉️</a>` : ''}
-        ${n.indirizzo ? `<a class="btn sec small" href="${esc(WEB + 'www.google.com/maps/search/?api=1&query=' + encodeURIComponent(n.indirizzo))}" target="_blank" ${stop}>📍</a>` : ''}
-      </div></div>
+
+function rigaPagamento(p) {
+  const c = catPag(p.categoria), st = statoPagamento(p), chi = persona(p.personaId), nf = filesDi(p).length;
+  return `<div class="row pag" onclick="apriPagamento('${p.id}')">
+    <div class="ico" style="background:${c[2]}22">${c[1]}</div>
+    <div class="txt"><div class="t">${esc(p.titolo)}</div>
+      <div class="s">${esc([p.periodo, chi ? chi.nome : '', p.metodo].filter(Boolean).join(' · ') || c[0])}${nf ? ' · 📎 ' + nf : ''}</div>
+      <div style="margin-top:4px"><span class="badge ${st.cls}">${st.txt}</span></div></div>
+    <div class="dx"><div class="importo">${numero(p.importo) ? euro(p.importo) : ''}</div>
+      ${p.pagata !== 'si' ? `<button class="btn teal small" onclick="event.stopPropagation();segnaPagata('${p.id}')">✅ Pagata</button>` : ''}</div>
   </div>`;
 }
-function apriNumero(id) {
-  const n = id ? Object.assign({}, S.numeri.find(x => x.id === id)) : { nome: '', categoria: 'Medici e salute', telefono: '', telefono2: '', email: '', indirizzo: '', note: '', preferito: '' };
-  apriFinestra(`<h3>${id ? '✏️ ' + esc(n.nome) : '📞 Nuovo numero'}<button class="icon-btn x" onclick="chiudiFinestra()">✕</button></h3>
-    <label class="f">Chi è?</label>
-    <input class="in" id="nNome" value="${esc(n.nome)}" placeholder="Es. Pediatra dott. Rossi">
-    <label class="f">Tipo</label>
-    <div class="pick" id="nCat">${CAT_NUM.map(c => `<button type="button" class="${c[0] === n.categoria ? 'on' : ''}" data-id="${c[0]}" onclick="scegliUno(this)">${c[1]} ${c[0]}</button>`).join('')}</div>
-    <div class="two">
-      <div><label class="f">Telefono</label><input class="in" type="tel" id="nTel" value="${esc(n.telefono)}"></div>
-      <div><label class="f">Cellulare / altro</label><input class="in" type="tel" id="nTel2" value="${esc(n.telefono2)}"></div>
-    </div>
-    <label class="f">Email</label><input class="in" type="email" id="nEmail" value="${esc(n.email)}">
-    <label class="f">Indirizzo</label><input class="in" id="nInd" value="${esc(n.indirizzo)}" placeholder="Per aprirlo in Google Maps">
-    <label class="f">Note</label><input class="in" id="nNote" value="${esc(n.note)}" placeholder="Es. riceve lun-ven 9-12">
-    <label class="toggle" style="margin-top:12px"><input type="checkbox" id="nPref" ${n.preferito === 'si' ? 'checked' : ''}> ⭐ Mettilo tra i preferiti</label>
-    <div class="azioni">
-      ${id ? `<button class="btn danger" onclick="eliminaNumero('${id}')">🗑️ Elimina</button>` : ''}
-      <button class="btn" id="nSalva" onclick="salvaNumero('${id || ''}')">💾 Salva</button>
-    </div>`);
+
+function vistaPagamenti() {
+  const anno = oggi().slice(0, 4);
+  const aperti = S.pagamenti.filter(p => p.pagata !== 'si');
+  const scadute = aperti.filter(p => p.scadenza && giorniA(p.scadenza) < 0);
+  const pagateAnno = S.pagamenti.filter(p => p.pagata === 'si' && (p.dataPagamento || p.scadenza || '').slice(0, 4) === anno);
+  const tot = l => l.reduce((s, p) => s + numero(p.importo), 0);
+  let h = `<div class="calhead"><h2>💶 Bollette e pagamenti</h2><button class="btn small" onclick="apriPagamento()">➕ Nuova</button></div>
+  <div class="riepilogo">
+    <div class="card"><div class="mini">Da pagare</div><b>${euro(tot(aperti))}</b><div class="mini">${aperti.length} ${aperti.length === 1 ? 'pagamento' : 'pagamenti'}</div></div>
+    <div class="card ${scadute.length ? 'rosso' : ''}"><div class="mini">Scadute</div><b>${euro(tot(scadute))}</b><div class="mini">${scadute.length ? scadute.length + ' da sistemare' : 'Nessuna 👍'}</div></div>
+    <div class="card"><div class="mini">Pagato nel ${anno}</div><b>${euro(tot(pagateAnno))}</b><div class="mini">${pagateAnno.length} pagamenti</div></div>
+  </div>
+  <div class="chips">
+    ${[['da', '⏳ Da pagare'], ['pagate', '✅ Pagate'], ['tutte', 'Tutte']].map(([k, t]) => `<button class="chip ${S.filtroPag === k ? 'on' : ''}" onclick="S.filtroPag='${k}';render()">${t}</button>`).join('')}
+    <select class="chip" onchange="S.catPag=this.value;render()"><option value="">Tutte le categorie</option>${CAT_PAG.map(c => `<option value="${c[0]}" ${S.catPag === c[0] ? 'selected' : ''}>${c[1]} ${c[0]}</option>`).join('')}</select>
+  </div>`;
+  let lista = S.pagamenti.filter(p => (S.filtroPag === 'tutte' || (S.filtroPag === 'pagate' ? p.pagata === 'si' : p.pagata !== 'si')) && (!S.catPag || catPag(p.categoria)[0] === S.catPag));
+  const verso = S.filtroPag === 'da' ? 1 : -1;
+  lista.sort((a, b) => ((a.scadenza || '9999') < (b.scadenza || '9999') ? -1 : (a.scadenza || '9999') > (b.scadenza || '9999') ? 1 : 0) * verso);
+  if (!lista.length) {
+    h += `<div class="card"><div class="empty"><b>${S.pagamenti.length ? '🎉' : '🧾'}</b>${S.pagamenti.length ? (S.filtroPag === 'da' ? 'Niente da pagare. Che sollievo!' : 'Niente qui.') : 'Nessuna bolletta ancora. Aggiungi luce, gas, acqua, mutuo… o importale da una cartella con la chat di Claude.'}</div>
+      <div class="azioni"><button class="btn" onclick="apriPagamento()">➕ Aggiungi una bolletta</button></div></div>`;
+  } else {
+    const gruppi = [];
+    lista.forEach(p => {
+      const k = p.scadenza ? p.scadenza.slice(0, 7) : 'senza';
+      let g = gruppi.find(x => x.k === k);
+      if (!g) gruppi.push(g = { k, voci: [] });
+      g.voci.push(p);
+    });
+    gruppi.forEach(g => {
+      const titolo = g.k === 'senza' ? 'Senza scadenza' : MESI[+g.k.slice(5) - 1] + ' ' + g.k.slice(0, 4);
+      h += `<div class="card"><div class="sp-rep" style="text-transform:capitalize">${titolo} <span class="mini">${euro(tot(g.voci))}</span></div>${g.voci.map(rigaPagamento).join('')}</div>`;
+    });
+  }
+  // Quanto avete speso quest'anno, per categoria
+  if (pagateAnno.length) {
+    const perCat = {};
+    pagateAnno.forEach(p => { const c = catPag(p.categoria)[0]; perCat[c] = (perCat[c] || 0) + numero(p.importo); });
+    const massimo = Math.max(...Object.values(perCat), 1);
+    h += `<div class="card"><div class="sp-rep">📊 Pagato nel ${anno} per categoria</div>
+      ${Object.keys(perCat).sort((a, b) => perCat[b] - perCat[a]).map(c => `<div class="catriga"><span>${catPag(c)[1]} ${esc(c)}</span><b>${euro(perCat[c])}</b></div>${barra(perCat[c] / massimo, catPag(c)[2])}`).join('')}
+    </div>`;
+  }
+  return h;
 }
-function salvaNumero(id) {
-  const n = id ? Object.assign({}, S.numeri.find(x => x.id === id)) : {};
-  n.nome = $('#nNome').value.trim();
-  if (!n.nome) return toast('Scrivi chi è 🙂');
-  n.categoria = personaScelta('nCat') || 'Altro';
-  n.telefono = $('#nTel').value.trim(); n.telefono2 = $('#nTel2').value.trim();
-  if (!n.telefono && !n.telefono2 && !$('#nEmail').value.trim()) return toast('Metti almeno un numero 🙂');
-  n.email = $('#nEmail').value.trim(); n.indirizzo = $('#nInd').value.trim(); n.note = $('#nNote').value.trim();
-  n.preferito = $('#nPref').checked ? 'si' : '';
-  const btn = $('#nSalva'); btn.disabled = true; btn.textContent = 'Un attimo… ⏳';
-  api('salva', 'Numeri', n).then(r => {
-    const i = S.numeri.findIndex(x => x.id === r.obj.id);
-    if (i >= 0) S.numeri[i] = r.obj; else S.numeri.push(r.obj);
-    chiudiFinestra(); render(); toast('Salvato in rubrica 📒');
+
+function apriPagamento(id, pre) {
+  const p = id ? Object.assign({}, S.pagamenti.find(x => x.id === id)) : Object.assign({
+    titolo: '', categoria: '', importo: '', scadenza: '', pagata: '', dataPagamento: '', metodo: '', periodo: '', personaId: '', ripeti: 'no', files: '[]', note: ''
+  }, pre || {});
+  F = { d: p, files: filesDi(p), nuovi: (pre && pre._nuovi) || [], cartella: 'Bollette e pagamenti', pagamento: true };
+  if (pre && pre._files) F.files = pre._files;
+  apriFinestra(`<h3>${id ? '✏️ ' + esc(p.titolo) : '💶 Nuova bolletta o pagamento'}<button class="icon-btn x" onclick="annullaDocumento()">✕</button></h3>
+    <label class="f">Cosa si paga?</label>
+    <input class="in" id="fTipo" list="sugPag" value="${esc(p.titolo)}" placeholder="Es. Luce Enel, TARI, rata mutuo…" oninput="catAutomatica()">
+    <datalist id="sugPag">${SUGGERIMENTI_PAG.map(s => `<option value="${esc(s)}">`).join('')}</datalist>
+    <label class="f">Categoria</label>
+    <div class="pick" id="gCatPag">${CAT_PAG.map(c => `<button type="button" class="${c[0] === catPag(p.categoria)[0] && p.categoria ? 'on' : ''}" data-id="${c[0]}" onclick="scegliUno(this);F.catToccata=true">${c[1]} ${c[0]}</button>`).join('')}</div>
+    <div class="two">
+      <div><label class="f">Importo (€)</label><input class="in" id="gImporto" inputmode="decimal" value="${esc(p.importo)}" placeholder="Es. 85,40"></div>
+      <div><label class="f">Scade il</label><input class="in" type="date" id="gScadenza" value="${esc(p.scadenza)}"></div>
+    </div>
+    <div class="two">
+      <div><label class="f">Periodo</label><input class="in" id="gPeriodo" value="${esc(p.periodo)}" placeholder="Es. set-ott 2026"></div>
+      <div><label class="f">Come si paga</label><select class="in" id="gMetodo"><option value="">—</option>${METODI.map(m => `<option ${m === p.metodo ? 'selected' : ''}>${m}</option>`).join('')}</select></div>
+    </div>
+    <label class="f">Intestata a</label>
+    <div class="pick" id="fPersona"><button type="button" class="${!p.personaId ? 'on' : ''}" data-id="" onclick="scegliUno(this)">🏠 Famiglia</button>${S.persone.map(x => `<button type="button" class="${x.id === p.personaId ? 'on' : ''}" data-id="${x.id}" onclick="scegliUno(this)">${esc(x.emoji || '🙂')} ${esc(x.nome)}</button>`).join('')}</div>
+    <label class="f">Si ripete?</label>
+    <select class="in" id="gRipeti">${RIPETI_PAG.map(r => `<option value="${r[0]}" ${r[0] === (p.ripeti || 'no') ? 'selected' : ''}>${r[1]}</option>`).join('')}</select>
+    <p class="mini">🔁 Se si ripete, quando la segni pagata preparo già la prossima.</p>
+    <label class="toggle" style="margin-top:6px"><input type="checkbox" id="gPagata" ${p.pagata === 'si' ? 'checked' : ''} onchange="$('#gDataBox').style.display=this.checked?'block':'none'"> ✅ È già pagata</label>
+    <div id="gDataBox" style="display:${p.pagata === 'si' ? 'block' : 'none'}"><label class="f">Pagata il</label><input class="in" type="date" id="gDataPag" value="${esc(p.dataPagamento || oggi())}"></div>
+    <label class="f">Bolletta o ricevuta</label>
+    <div class="files" id="fFiles"></div>
+    <div class="azioni" style="margin-top:8px">
+      <button class="btn sec small" onclick="scegliFile('inFoto')">📷 Foto</button>
+      <button class="btn sec small" onclick="scegliFile('inFile')">📎 PDF o foto</button>
+    </div>
+    <label class="f">Note</label>
+    <textarea class="in" id="gNote" placeholder="Codice cliente, numero bollettino…">${esc(p.note)}</textarea>
+    <div class="azioni">
+      ${id ? `<button class="btn danger" onclick="eliminaPagamento('${id}')">🗑️ Elimina</button>` : ''}
+      <button class="btn" id="gSalva" onclick="salvaPagamento()">💾 Salva</button>
+    </div>
+    <p class="mini">📅 Finché non è pagata, la scadenza sta anche nel tuo Google Calendar con un avviso 3 giorni prima.</p>`);
+  disegnaFiles();
+}
+function catAutomatica() {
+  if (F.catToccata) return;
+  const c = indovinaCatPag($('#fTipo').value);
+  document.querySelectorAll('#gCatPag button').forEach(b => b.classList.toggle('on', b.dataset.id === c && c !== 'Altro'));
+}
+
+// Se un pagamento ripetuto viene pagato, prepara il prossimo (se non c'e' gia')
+function prossimoPagamento(p) {
+  const mesi = parseInt(p.ripeti, 10);
+  if (!mesi || !p.scadenza) return null;
+  const s = addMesi(p.scadenza, mesi);
+  if (S.pagamenti.some(x => x.id !== p.id && norm(x.titolo) === norm(p.titolo) && x.scadenza === s)) return null;
+  return {
+    titolo: p.titolo, categoria: p.categoria, importo: p.importo, scadenza: s, pagata: '', dataPagamento: '', metodo: p.metodo,
+    periodo: '', personaId: p.personaId, ripeti: p.ripeti, files: '[]', note: numero(p.importo) ? 'Importo stimato uguale alla volta prima' : ''
+  };
+}
+
+async function registraPagamento(p, primaPagata) {
+  const r = await api('salva', 'Pagamenti', p);
+  const i = S.pagamenti.findIndex(x => x.id === r.obj.id);
+  if (i >= 0) S.pagamenti[i] = r.obj; else S.pagamenti.push(r.obj);
+  let msg = r.avviso || '';
+  if (!primaPagata && r.obj.pagata === 'si') {
+    const succ = prossimoPagamento(r.obj);
+    if (succ) {
+      const r2 = await api('salva', 'Pagamenti', succ);
+      S.pagamenti.push(r2.obj);
+      msg = msg || 'Pagata ✅ Ho già preparato la prossima: scade il ' + fData(succ.scadenza) + ' 🔁';
+    }
+  }
+  return msg;
+}
+
+function salvaPagamento() {
+  const p = F.d;
+  const primaPagata = (S.pagamenti.find(x => x.id === p.id) || {}).pagata === 'si';
+  p.titolo = $('#fTipo').value.trim();
+  if (!p.titolo) return toast('Scrivi cosa si paga 🙂');
+  p.categoria = personaScelta('gCatPag') || indovinaCatPag(p.titolo);
+  p.importo = $('#gImporto').value.trim();
+  if (p.importo && !numero(p.importo)) return toast('L\'importo non mi torna: scrivilo tipo 85,40');
+  p.scadenza = $('#gScadenza').value;
+  p.periodo = $('#gPeriodo').value.trim();
+  p.metodo = $('#gMetodo').value;
+  p.personaId = personaScelta('fPersona');
+  p.ripeti = $('#gRipeti').value;
+  p.pagata = $('#gPagata').checked ? 'si' : '';
+  p.dataPagamento = p.pagata === 'si' ? ($('#gDataPag').value || oggi()) : '';
+  p.note = $('#gNote').value.trim();
+  const prima = filesDi(S.pagamenti.find(x => x.id === p.id) || {});
+  const ora = new Set(F.files.map(f => f.id));
+  const tolti = prima.filter(f => !ora.has(f.id)).concat(F.nuovi.filter(id => !ora.has(id)).map(id => ({ id })));
+  p.files = JSON.stringify(F.files);
+  const btn = $('#gSalva'); btn.disabled = true; btn.textContent = 'Un attimo… ⏳';
+  registraPagamento(p, primaPagata).then(msg => {
+    tolti.forEach(f => api('cestinaFile', f.id).catch(() => {}));
+    F = null; chiudiFinestra(); render();
+    toast(msg || (p.pagata === 'si' ? 'Segnata come pagata ✅' : 'Salvata ✅' + (p.scadenza ? ' Avviso nel calendario 📅' : '')), 4000);
   }).catch(e => { btn.disabled = false; btn.textContent = '💾 Salva'; errore(e); });
 }
-function eliminaNumero(id) {
-  chiedi('Tolgo questo numero?', 'Lo cancello dalla rubrica di casa.').then(si => {
+
+function segnaPagata(id) {
+  const p = Object.assign({}, S.pagamenti.find(x => x.id === id));
+  p.pagata = 'si'; p.dataPagamento = oggi();
+  toast('Segno come pagata… ⏳', 20000);
+  registraPagamento(p, false).then(msg => { render(); toast(msg || 'Pagata ✅ Tolto l\'avviso dal calendario', 4000); }).catch(errore);
+}
+
+function eliminaPagamento(id) {
+  chiedi('Cancello questo pagamento?', 'Sparisce anche l\'avviso dal calendario e la copia della bolletta dalla cartella dell\'app.').then(si => {
     if (!si) return;
-    api('elimina', 'Numeri', id).then(() => { S.numeri = S.numeri.filter(x => x.id !== id); chiudiFinestra(); render(); toast('Tolto 👋'); }).catch(errore);
+    api('elimina', 'Pagamenti', id).then(() => { S.pagamenti = S.pagamenti.filter(x => x.id !== id); F = null; chiudiFinestra(); render(); toast('Cancellato 👋'); }).catch(errore);
   });
 }
 
@@ -1930,16 +1959,16 @@ function sceltaNuovo() {
     <div class="row" onclick="apriDocumento()"><div class="ico" style="background:var(--primary-soft)">📄</div><div class="txt"><div class="t">Un documento</div><div class="s">Carta d'identità, patente, assicurazione…</div></div></div>
     <div class="row" onclick="apriImpegno(null, S.vista==='cal'?S.giornoSel:null)"><div class="ico" style="background:var(--accent-soft)">📌</div><div class="txt"><div class="t">Un impegno</div><div class="s">Visite, scuola, sport, feste…</div></div></div>
     <div class="row" onclick="vai('spesa');setTimeout(()=>$('#spNome')&&$('#spNome').focus(),50)"><div class="ico" style="background:var(--ok-soft)">🛒</div><div class="txt"><div class="t">Qualcosa da comprare</div><div class="s">Nella lista della spesa</div></div></div>
-    <div class="row" onclick="apriProgetto()"><div class="ico" style="background:var(--warn-soft)">🎯</div><div class="txt"><div class="t">Un progetto</div><div class="s">Viaggi, lavori in casa, acquisti, sogni…</div></div></div>
-    <div class="row" onclick="apriNumero()"><div class="ico" style="background:var(--accent-soft)">📞</div><div class="txt"><div class="t">Un numero utile</div><div class="s">Medico, idraulico, scuola…</div></div></div>
+    <div class="row" onclick="apriPagamento()"><div class="ico" style="background:var(--warn-soft)">💶</div><div class="txt"><div class="t">Una bolletta o un pagamento</div><div class="s">Luce, gas, TARI, mutuo, asilo…</div></div></div>
+
     <div class="row" onclick="apriPersona()"><div class="ico" style="background:var(--primary-soft)">👤</div><div class="txt"><div class="t">Una persona</div><div class="s">Qualcuno della famiglia</div></div></div>
     <div class="row" onclick="vai('importa')"><div class="ico" style="background:var(--accent-soft)">📥</div><div class="txt"><div class="t">Importa da cartella</div><div class="s">I dati preparati dalla chat di Claude</div></div></div>
     <div class="row" onclick="vai('cerca')"><div class="ico" style="background:var(--ok-soft)">🔍</div><div class="txt"><div class="t">Cerca in una cartella</div><div class="s">Trovo io i documenti della famiglia</div></div></div>`);
 }
 function menuAltro() {
   apriFinestra(`<h3>☰ Altro<button class="icon-btn x" onclick="chiudiFinestra()">✕</button></h3>
-    <div class="row" onclick="vai('prog')"><div class="ico" style="background:var(--warn-soft)">🎯</div><div class="txt"><div class="t">Progetti futuri</div><div class="s">${S.progetti.filter(p => p.stato !== 'fatto').length} da fare</div></div></div>
-    <div class="row" onclick="vai('num')"><div class="ico" style="background:var(--accent-soft)">📞</div><div class="txt"><div class="t">Numeri utili</div><div class="s">${S.numeri.length} contatti + emergenze</div></div></div>
+    <div class="row" onclick="vai('fam')"><div class="ico" style="background:var(--primary-soft)">👨‍👩‍👦</div><div class="txt"><div class="t">Famiglia</div><div class="s">Persone e condivisione dell'app</div></div></div>
+    <div class="row" onclick="apriImpostazioni()"><div class="ico" style="background:var(--line)">⚙️</div><div class="txt"><div class="t">Impostazioni</div><div class="s">Calendario, promemoria, il tuo nome</div></div></div>
     <div class="row" onclick="vai('fam')"><div class="ico" style="background:var(--primary-soft)">👨‍👩‍👦</div><div class="txt"><div class="t">Famiglia</div><div class="s">Persone e condivisione dell'app</div></div></div>
     <div class="row" onclick="vai('importa')"><div class="ico" style="background:var(--accent-soft)">📥</div><div class="txt"><div class="t">Importa da cartella</div><div class="s">I dati letti dalla chat di Claude (importazione-casa.json)</div></div></div>
     <div class="row" onclick="vai('cerca')"><div class="ico" style="background:var(--ok-soft)">🔍</div><div class="txt"><div class="t">Cerca documenti in una cartella</div><div class="s">Drive, PC o chiavetta (solo lettura)</div></div></div>
