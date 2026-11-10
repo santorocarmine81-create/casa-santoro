@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Casa Santoro</title>
+  <meta name="theme-color" content="#ff6b57">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Casa">
+  <style>
+    :root { --bg:#fff6ee; --ink:#2b2633; --muted:#8a8194; --primary:#ff6b57; --accent:#12b5a5; --card:#fff; }
+    @media (prefers-color-scheme: dark) { :root { --bg:#1c1a21; --ink:#f4f0f7; --muted:#a69db1; --card:#28252e; } }
+    html, body { margin:0; height:100%; background:var(--bg); color:var(--ink); overflow:hidden;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    iframe { position:fixed; inset:0; width:100%; height:100%; border:0; background:var(--bg); }
+    .schermo { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:14px; text-align:center; padding:16px; background:var(--bg); }
+    .schermo img { width:96px; height:96px; }
+    #offline, #configura { display:none; }
+    .salta { animation: salta 1s ease-in-out infinite; }
+    @keyframes salta { 50% { transform: translateY(-10px); } }
+    button { font:inherit; font-weight:700; padding:11px 20px; border-radius:14px; border:0; background:var(--primary); color:#fff; cursor:pointer; }
+    input { font:inherit; width:min(520px, 100%); box-sizing:border-box; padding:12px 14px; border-radius:14px;
+      border:2px solid #f1e4d8; background:var(--card); color:var(--ink); }
+    .mini { color:var(--muted); font-size:14px; max-width:520px; }
+    #loginbar { position:fixed; left:50%; bottom:16px; transform:translateX(-50%); display:none; align-items:center; gap:10px;
+      flex-wrap:wrap; justify-content:center; max-width:calc(100% - 32px); box-sizing:border-box; padding:10px 14px;
+      border-radius:16px; background:var(--ink); color:var(--bg); font-size:14px; box-shadow:0 6px 20px rgba(0,0,0,.25); z-index:10; }
+    #loginbar button { background:var(--accent); padding:7px 14px; }
+    #loginbar .x { background:transparent; color:var(--bg); padding:4px 8px; }
+  </style>
+</head>
+<body>
+  <div id="loading" class="schermo">
+    <img class="salta" src="icons/icon-192.png" alt="">
+    <div><strong>Sto aprendo casa…</strong></div>
+  </div>
+
+  <div id="offline" class="schermo">
+    <img src="icons/icon-192.png" alt="">
+    <div><strong>Niente Internet 📵</strong></div>
+    <div class="mini">L'app ha bisogno della rete per pescare i tuoi dati da Google.</div>
+    <button onclick="location.reload()">Riprova</button>
+  </div>
+
+  <div id="configura" class="schermo">
+    <img src="icons/icon-192.png" alt="">
+    <div><strong>Ultimo passo! 🔧</strong></div>
+    <div class="mini">Incolla qui l'indirizzo dell'app che ti ha dato Google Apps Script (quello che finisce con <b>/exec</b>).</div>
+    <input id="url" placeholder="https://script.google.com/macros/s/…/exec">
+    <button onclick="salvaUrl()">Fatto, apri l'app</button>
+  </div>
+
+  <div id="loginbar">
+    <span>Vedi un errore o una pagina bianca?</span>
+    <button onclick="accedi()">Entra con Google</button>
+    <button class="x" onclick="nascondiBarra()" aria-label="Chiudi">✕</button>
+  </div>
+
+  <script>
+    // Indirizzo della web app su Google Apps Script.
+    // Se resta vuoto, la prima volta l'app chiede di incollarlo (e lo ricorda su quel dispositivo).
+    var APP_URL_FISSO = '';
+    var APP_URL = APP_URL_FISSO;
+    try { APP_URL = APP_URL_FISSO || localStorage.getItem('casaSantoroUrl') || ''; } catch (e) {}
+    var frame, timer;
+
+    function mostra(id) {
+      ['loading', 'offline', 'configura'].forEach(function (x) {
+        document.getElementById(x).style.display = x === id ? 'flex' : 'none';
+      });
+    }
+
+    function salvaUrl() {
+      var v = document.getElementById('url').value.trim();
+      if (!/^https:\/\/script\.google\.com\/.+\/exec/.test(v)) {
+        alert('Mmm, non sembra giusto: deve iniziare con https://script.google.com/ e finire con /exec');
+        return;
+      }
+      try { localStorage.setItem('casaSantoroUrl', v); } catch (e) {}
+      APP_URL = v;
+      avvia();
+    }
+
+    function avvia() {
+      if (!APP_URL) { mostra('configura'); return; }
+      if (!navigator.onLine) { mostra('offline'); return; }
+      mostra('loading');
+      frame = document.createElement('iframe');
+      frame.src = APP_URL;
+      frame.title = 'Casa Santoro';
+      frame.allow = 'clipboard-read; clipboard-write; fullscreen; camera';
+      frame.onload = function () { mostra(''); };
+      document.body.appendChild(frame);
+      // Per qualche secondo offre l'accesso a Google, utile se l'account non viene riconosciuto dentro l'app.
+      document.getElementById('loginbar').style.display = 'flex';
+      timer = setTimeout(nascondiBarra, 12000);
+    }
+
+    function nascondiBarra() { document.getElementById('loginbar').style.display = 'none'; }
+
+    // Apre l'accesso Google in una finestra a parte; quando la chiudi, l'app si ricarica gia' collegata.
+    function accedi() {
+      clearTimeout(timer);
+      var w = window.open(APP_URL, 'login_google', 'width=520,height=680');
+      if (!w) { window.location.href = APP_URL; return; }
+      var check = setInterval(function () {
+        if (w.closed) { clearInterval(check); nascondiBarra(); frame.src = APP_URL; }
+      }, 800);
+    }
+
+    avvia();
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    }
+  </script>
+</body>
+</html>

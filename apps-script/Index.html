@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<base target="_top">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Casa Santoro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fff6ee; --card:#ffffff; --ink:#2b2633; --muted:#8a8194; --line:#f1e4d8;
+  --primary:#ff6b57; --primary-soft:#ffe3dd; --accent:#12b5a5; --accent-soft:#d6f5f1;
+  --warn:#f59e0b; --warn-soft:#fff1d6; --danger:#e8453c; --danger-soft:#ffe0de;
+  --ok:#1fa971; --ok-soft:#dbf5e9; --shadow:0 6px 20px rgba(120,70,40,.10);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#1c1a21; --card:#28252e; --ink:#f4f0f7; --muted:#a69db1; --line:#39343f;
+    --primary-soft:#4a2b28; --accent-soft:#1d3d3a; --warn-soft:#45371c; --danger-soft:#4a2526; --ok-soft:#1e3d30;
+    --shadow:0 6px 20px rgba(0,0,0,.35);
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Nunito,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px}
+body{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent)}
+.wrap{max-width:980px;margin:0 auto;padding:0 16px}
+header{position:sticky;top:0;z-index:20;background:var(--bg);padding:14px 0 10px}
+header .wrap{display:flex;align-items:center;gap:10px}
+header h1{font-size:22px;font-weight:800;margin:0;flex:1;letter-spacing:-.3px}
+header h1 span{color:var(--primary)}
+.icon-btn{width:42px;height:42px;border-radius:14px;border:0;background:var(--card);box-shadow:var(--shadow);cursor:pointer;font-size:19px;display:grid;place-items:center}
+.demo{background:var(--warn-soft);color:var(--ink);border-radius:14px;padding:10px 14px;font-size:14px;margin:4px 0 12px}
+
+nav.tabs{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom));z-index:30;
+  display:flex;gap:4px;background:var(--card);padding:6px;border-radius:22px;box-shadow:0 10px 30px rgba(0,0,0,.18);width:min(520px,calc(100% - 24px))}
+nav.tabs button{flex:1;border:0;background:transparent;border-radius:16px;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;font-weight:700;color:var(--muted)}
+nav.tabs button b{font-size:21px;line-height:1}
+nav.tabs button.on{background:var(--primary-soft);color:var(--primary)}
+.fab{position:fixed;right:max(16px,calc(50% - 474px));bottom:calc(92px + env(safe-area-inset-bottom));z-index:29;width:58px;height:58px;border-radius:20px;border:0;
+  background:var(--primary);color:#fff;font-size:30px;box-shadow:0 10px 24px rgba(255,107,87,.45);cursor:pointer}
+
+h2{font-size:19px;margin:22px 0 10px;font-weight:800}
+.hello{font-size:26px;font-weight:800;margin:6px 0 2px}
+.sub{color:var(--muted);margin:0 0 6px}
+.card{background:var(--card);border-radius:20px;box-shadow:var(--shadow);padding:14px 16px;margin-bottom:12px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.row:last-child{border-bottom:0}
+.row .ico{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;font-size:21px;flex:none}
+.row .txt{flex:1;min-width:0}
+.row .t{font-weight:700;overflow:hidden;text-overflow:ellipsis}
+.row .s{color:var(--muted);font-size:14px;overflow:hidden;text-overflow:ellipsis}
+.badge{display:inline-block;border-radius:999px;padding:3px 10px;font-size:13px;font-weight:700;white-space:nowrap}
+.b-red{background:var(--danger-soft);color:var(--danger)}
+.b-orange{background:var(--warn-soft);color:#c27400}
+.b-green{background:var(--ok-soft);color:var(--ok)}
+.b-grey{background:var(--line);color:var(--muted)}
+.b-teal{background:var(--accent-soft);color:var(--accent)}
+.empty{text-align:center;color:var(--muted);padding:18px 8px}
+.empty b{display:block;font-size:34px;margin-bottom:6px}
+.quick{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+.btn{border:0;border-radius:14px;padding:11px 16px;font-weight:800;cursor:pointer;background:var(--primary);color:#fff}
+.btn.sec{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+.btn.teal{background:var(--accent)}
+.btn.ghost{background:transparent;color:var(--muted);box-shadow:none}
+.btn.danger{background:var(--danger-soft);color:var(--danger)}
+.btn.small{padding:7px 12px;font-size:14px;border-radius:12px}
+.btn:disabled{opacity:.55;cursor:default}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none}
+.chip{border:0;border-radius:999px;padding:7px 14px;background:var(--card);box-shadow:var(--shadow);font-weight:700;cursor:pointer;white-space:nowrap}
+.chip.on{background:var(--ink);color:var(--bg)}
+.search{width:100%;border:0;border-radius:16px;padding:12px 16px;background:var(--card);box-shadow:var(--shadow);margin-bottom:10px}
+
+/* Calendario */
+.calhead{display:flex;align-items:center;gap:8px;margin:8px 0 10px}
+.calhead h2{flex:1;margin:0;text-transform:capitalize}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal .dow{text-align:center;font-size:12px;font-weight:800;color:var(--muted);padding:4px 0}
+.day{background:var(--card);border-radius:12px;min-height:62px;padding:5px;cursor:pointer;border:2px solid transparent;overflow:hidden}
+.day.fuori{opacity:.4}
+.day.sel{border-color:var(--primary)}
+.day .n{font-weight:800;font-size:14px;width:26px;height:26px;display:grid;place-items:center;border-radius:50%}
+.day.oggi .n{background:var(--primary);color:#fff}
+.day .dots{display:flex;gap:3px;flex-wrap:wrap;margin-top:3px}
+.day .dot{width:7px;height:7px;border-radius:50%}
+.day .pill{display:none;font-size:11px;font-weight:700;border-radius:6px;padding:1px 5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff}
+.day .more{display:none;font-size:11px;color:var(--muted);font-weight:700}
+@media (min-width:700px){
+  .day{min-height:96px}
+  .day .dots{display:none}
+  .day .pill,.day .more{display:block}
+}
+.toggle{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);cursor:pointer;user-select:none}
+.toggle input{width:18px;height:18px;accent-color:var(--accent)}
+
+/* Finestre */
+.velo{position:fixed;inset:0;background:rgba(20,15,25,.45);z-index:50;display:flex;align-items:flex-end;justify-content:center;animation:fade .15s}
+.sheet{background:var(--bg);width:100%;max-width:620px;max-height:92vh;overflow:auto;border-radius:26px 26px 0 0;padding:18px 18px calc(22px + env(safe-area-inset-bottom));animation:up .2s ease-out}
+@media (min-width:700px){.velo{align-items:center}.sheet{border-radius:26px}}
+@keyframes up{from{transform:translateY(40px);opacity:.6}}
+@keyframes fade{from{opacity:0}}
+.sheet h3{margin:0 0 14px;font-size:21px;font-weight:800;display:flex;align-items:center;gap:8px}
+.sheet h3 .x{margin-left:auto}
+label.f{display:block;font-weight:700;font-size:14px;margin:12px 0 5px;color:var(--muted)}
+.in{width:100%;border:2px solid var(--line);border-radius:14px;padding:11px 13px;background:var(--card)}
+.in:focus{outline:0;border-color:var(--primary)}
+textarea.in{min-height:70px;resize:vertical}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.two>div{min-width:0}
+input[type=date].in,input[type=time].in{min-width:0;-webkit-appearance:none;appearance:none;min-height:48px}
+.azioni{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+.azioni .btn{flex:1}
+.pick{display:flex;gap:8px;flex-wrap:wrap}
+.pick button{border:2px solid var(--line);background:var(--card);border-radius:14px;padding:7px 11px;cursor:pointer;font-weight:700}
+.pick button.on{border-color:var(--primary);background:var(--primary-soft)}
+.col{width:34px;height:34px;border-radius:50%;border:3px solid transparent!important;padding:0!important}
+.col.on{border-color:var(--ink)!important}
+.files{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.file{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:14px;padding:8px 10px}
+.file span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.av{width:46px;height:46px;border-radius:16px;display:grid;place-items:center;font-size:24px;flex:none}
+
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(100px + env(safe-area-inset-bottom));z-index:80;background:var(--ink);color:var(--bg);
+  padding:12px 18px;border-radius:16px;font-weight:700;box-shadow:var(--shadow);max-width:calc(100% - 32px);display:none;text-align:center}
+#caricamento{position:fixed;inset:0;z-index:90;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-weight:800;font-size:18px}
+#caricamento .casa{font-size:58px;animation:salta 1s ease-in-out infinite}
+@keyframes salta{50%{transform:translateY(-10px)}}
+.mini{font-size:13px;color:var(--muted)}
+.sep{height:1px;background:var(--line);margin:16px 0}
+</style>
+</head>
+<body>
+<div id="caricamento"><div class="casa">🏠</div>Sto aprendo casa…</div>
+
+<header><div class="wrap">
+  <h1>🏠 Casa <span>Santoro</span></h1>
+  <button class="icon-btn" onclick="ricarica()" title="Aggiorna">🔄</button>
+  <button class="icon-btn" onclick="apriImpostazioni()" title="Impostazioni">⚙️</button>
+</div></header>
+
+<main class="wrap" id="main"></main>
+
+<button class="fab" id="fab" onclick="sceltaNuovo()" title="Aggiungi">+</button>
+<nav class="tabs">
+  <button data-v="home" onclick="vai('home')"><b>🏡</b>Casa</button>
+  <button data-v="cal" onclick="vai('cal')"><b>📅</b>Calendario</button>
+  <button data-v="doc" onclick="vai('doc')"><b>📂</b>Documenti</button>
+  <button data-v="fam" onclick="vai('fam')"><b>👨‍👩‍👦</b>Famiglia</button>
+</nav>
+<div id="toast"></div>
+<input type="file" id="inFoto" accept="image/*" capture="environment" hidden>
+<input type="file" id="inFile" accept="image/*,application/pdf" multiple hidden>
+<input type="file" id="inCartella" webkitdirectory multiple hidden>
+
+<script>
+/* =========================================================
+   Collegamento con Google (o modalita' prova nel browser)
+   ========================================================= */
+const DEMO = !(window.google && google.script && google.script.run);
+
+function api(nome, ...args) {
+  return new Promise((ok, ko) => {
+    if (DEMO) {
+      setTimeout(() => {
+        try { ok(JSON.parse(JSON.stringify(PROVA[nome](...args)))); } catch (e) { ko(e); }
+      }, 250);
+      return;
+    }
+    google.script.run.withSuccessHandler(ok).withFailureHandler(ko)[nome](...args);
+  });
+}
+
+/* =========================================================
+   Dati fissi
+   ========================================================= */
+const TIPI_DOC = [
+  ["Carta d'identità", '🪪', 60], ['Passaporto', '🛂', 90], ['Patente', '🚗', 60],
+  ['Tessera sanitaria', '💳', 30], ['Codice fiscale', '🧾', 0], ['Assicurazione auto', '🚙', 30],
+  ['Assicurazione moto', '🛵', 30], ['Bollo auto', '💰', 30], ['Revisione auto', '🔧', 30],
+  ['Assicurazione casa', '🏠', 30], ['Libretto di circolazione', '📘', 0], ['Vaccini', '💉', 30],
+  ['Esami / referti', '🩺', 0], ['Ricetta medica', '💊', 0], ['Piano terapeutico', '📋', 30],
+  ['Invalidità / 104', '♿', 60], ['ISEE', '📊', 30], ['Busta paga / CU', '💼', 0],
+  ['Dichiarazione dei redditi', '🧮', 0], ['Contratto', '✍️', 30], ['Bolletta', '💡', 0],
+  ['Titolo di studio', '🎓', 0], ['Abbonamento', '🎫', 15], ['Altro', '📄', 30]
+];
+const CATEGORIE = [
+  ['Salute', '🩺', '#ef6f8f'], ['Scuola', '🏫', '#6b8cff'], ['Sport', '⚽', '#22b07d'], ['Festa', '🎉', '#ff9f1c'],
+  ['Casa', '🏠', '#a17cf0'], ['Auto', '🚗', '#5b6b7f'], ['Pagamenti', '💶', '#d4a017'], ['Chiesa', '🙏', '#7c9cbf'],
+  ['Lavoro', '💼', '#8d6e63'], ['Viaggio', '✈️', '#12b5a5'], ['Altro', '📌', '#ff6b57']
+];
+const COLORI = ['#ff6b57', '#12b5a5', '#6b8cff', '#ff9f1c', '#a17cf0', '#ef6f8f', '#22b07d', '#d4a017', '#5b6b7f', '#00a3d9'];
+const EMOJI = ['🧔', '👩', '👦', '👧', '👶', '👵', '👴', '👨', '🧑', '👱‍♀️', '🐶', '🐱', '🙂', '⭐'];
+const RELAZIONI = ['Io', 'Moglie', 'Marito', 'Figlio', 'Figlia', 'Mamma', 'Papà', 'Suocera', 'Suocero', 'Nonna', 'Nonno', 'Fratello', 'Sorella', 'Zio', 'Zia', 'Altro'];
+const MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
+const GIORNI = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
+
+/* =========================================================
+   Stato
+   ========================================================= */
+const S = {
+  persone: [], documenti: [], impegni: [], ignorati: [], imp: {}, link: {}, email: '',
+  vista: 'home', mese: null, giornoSel: null, google: {}, googleCarico: {},
+  filtroPersona: '', cerca: '', scan: null, pcFiles: {}
+};
+
+/* =========================================================
+   Utilita'
+   ========================================================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = n => String(n).padStart(2, '0');
+const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+const daIso = s => { const p = String(s).split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); };
+const oggi = () => iso(new Date());
+const giorniA = s => Math.round((daIso(s) - daIso(oggi())) / 86400000);
+function addGiorni(s, n) { const d = daIso(s); d.setDate(d.getDate() + n); return iso(d); }
+function fData(s, conGiorno) {
+  if (!s) return '';
+  const d = daIso(s);
+  return (conGiorno ? GIORNI[d.getDay()] + ' ' : '') + d.getDate() + ' ' + MESI[d.getMonth()].slice(0, 3) + (d.getFullYear() !== new Date().getFullYear() ? ' ' + d.getFullYear() : '');
+}
+function quando(s) {
+  const g = giorniA(s);
+  if (g === 0) return 'oggi'; if (g === 1) return 'domani'; if (g === -1) return 'ieri';
+  if (g > 1 && g < 7) return 'tra ' + g + ' giorni';
+  return fData(s, true);
+}
+const persona = id => S.persone.find(p => p.id === id);
+const tipoInfo = t => TIPI_DOC.find(x => x[0] === t) || [t, '📄', 30];
+const catInfo = c => CATEGORIE.find(x => x[0] === c) || CATEGORIE[CATEGORIE.length - 1];
+const filesDi = d => { try { return JSON.parse(d.files || '[]'); } catch (e) { return []; } };
+const preavvisoDi = d => d.preavviso === '' || d.preavviso == null ? +S.imp.preavviso || 30 : +d.preavviso;
+
+function toast(msg, ms) {
+  const t = $('#toast'); t.textContent = msg; t.style.display = 'block';
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.style.display = 'none', ms || 2800);
+}
+function errore(e) { console.error(e); toast('Ops! 😅 ' + (e && e.message ? e.message : e), 5000); }
+
+function statoScadenza(d) {
+  if (!d.scadenza) return { cls: 'b-grey', txt: 'Non scade', liv: 0 };
+  const g = giorniA(d.scadenza);
+  if (g < 0) return { cls: 'b-red', txt: 'Scaduto ' + (g === -1 ? 'ieri' : 'da ' + (-g) + ' gg'), liv: 3 };
+  if (g === 0) return { cls: 'b-red', txt: 'Scade oggi!', liv: 3 };
+  if (g <= Math.max(preavvisoDi(d), 7)) return { cls: 'b-orange', txt: g === 1 ? 'Scade domani' : 'Tra ' + g + ' giorni', liv: 2 };
+  return { cls: 'b-green', txt: 'Ok fino al ' + fData(d.scadenza), liv: 1 };
+}
+
+/* =========================================================
+   Avvio
+   ========================================================= */
+function carica() {
+  return api('getTutto').then(r => {
+    S.persone = r.persone; S.documenti = r.documenti; S.impegni = r.impegni; S.ignorati = r.ignorati || [];
+    S.imp = r.impostazioni; S.link = r.link || {}; S.email = r.email || '';
+    $('#caricamento').style.display = 'none';
+    render();
+  });
+}
+function ricarica() { S.google = {}; S.googleCarico = {}; toast('Aggiorno… 🔄', 1200); carica().catch(errore); }
+
+function vai(v) { S.vista = v; window.scrollTo(0, 0); render(); }
+
+function render() {
+  document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === (S.vista === 'cerca' ? 'doc' : S.vista)));
+  $('#fab').style.display = S.vista === 'cerca' ? 'none' : 'block';
+  const m = $('#main');
+  let h = DEMO ? '<div class="demo">🧪 <b>Modalità prova</b>: i dati restano solo in questo browser. Quando l\'app sarà su Google, tutto andrà nel tuo Drive e nel calendario.</div>' : '';
+  if (S.vista === 'home') h += vistaHome();
+  if (S.vista === 'cal') h += vistaCalendario();
+  if (S.vista === 'doc') h += vistaDocumenti();
+  if (S.vista === 'fam') h += vistaFamiglia();
+  if (S.vista === 'cerca') h += vistaCerca();
+  m.innerHTML = h;
+  if (S.vista === 'cal') caricaGoogleMese();
+}
+
+/* =========================================================
+   Cose del giorno (impegni, scadenze, compleanni, Google)
+   ========================================================= */
+function siRipete(o, s) {
+  if (!o.data || s < o.data) return false;
+  if (o.ripetiFino && s > o.ripetiFino) return false;
+  const r = o.ripeti || 'no';
+  if (r === 'no') return s === o.data;
+  if (r === 'settimanale') return Math.round((daIso(s) - daIso(o.data)) / 86400000) % 7 === 0;
+  if (r === 'mensile') return s.slice(8) === o.data.slice(8);
+  if (r === 'annuale') return s.slice(5) === o.data.slice(5);
+  return false;
+}
+
+function coseDelGiorno(s, conGoogle) {
+  const out = [];
+  S.impegni.forEach(o => {
+    if (!siRipete(o, s)) return;
+    const c = catInfo(o.categoria);
+    const ids = String(o.persone || '').split(',').filter(Boolean);
+    const p = ids.map(persona).filter(Boolean);
+    out.push({
+      tipo: 'imp', id: o.id, ico: c[1], colore: p.length === 1 ? p[0].colore : c[2],
+      titolo: o.titolo, ora: o.tuttoIlGiorno === 'si' ? '' : (o.oraInizio || ''),
+      sotto: [o.tuttoIlGiorno === 'si' || !o.oraInizio ? 'Tutto il giorno' : o.oraInizio + (o.oraFine ? '–' + o.oraFine : ''), p.map(x => x.nome).join(', '), o.luogo].filter(Boolean).join(' · ')
+    });
+  });
+  S.documenti.forEach(d => {
+    if (!d.scadenza) return;
+    const p = persona(d.personaId);
+    const nome = d.tipo + (p ? ' di ' + p.nome : '');
+    if (d.scadenza === s) out.push({ tipo: 'doc', id: d.id, ico: '⚠️', colore: '#e8453c', titolo: 'Scade: ' + nome, ora: '', sotto: 'Documento in scadenza' });
+    const pre = preavvisoDi(d);
+    if (pre > 0 && addGiorni(d.scadenza, -pre) === s) out.push({ tipo: 'doc', id: d.id, ico: '⏰', colore: '#f59e0b', titolo: 'Da rinnovare: ' + nome, ora: '', sotto: 'Scade il ' + fData(d.scadenza) });
+  });
+  S.persone.forEach(p => {
+    if (p.nascita && p.nascita.slice(5) === s.slice(5) && s >= p.nascita) {
+      const anni = +s.slice(0, 4) - +p.nascita.slice(0, 4);
+      out.push({ tipo: 'per', id: p.id, ico: '🎂', colore: p.colore || '#ff9f1c', titolo: 'Compleanno di ' + p.nome, ora: '', sotto: anni ? 'Fa ' + anni + ' anni 🎉' : 'È nato/a oggi!' });
+    }
+  });
+  if (conGoogle && S.imp.mostraGoogle) {
+    (S.google[chiaveMese()] || []).forEach(e => {
+      if (e.data <= s && s <= (e.fine || e.data)) out.push({ tipo: 'g', ico: '🗓️', colore: e.colore || '#9aa0a6', titolo: e.titolo, ora: e.ora, sotto: [e.ora ? e.ora + (e.oraFine ? '–' + e.oraFine : '') : 'Tutto il giorno', e.calendario, e.luogo].filter(Boolean).join(' · '), google: true });
+    });
+  }
+  out.sort((a, b) => (a.ora || '') < (b.ora || '') ? -1 : (a.ora || '') > (b.ora || '') ? 1 : 0);
+  return out;
+}
+
+function rigaCosa(c, data) {
+  const click = c.tipo === 'imp' ? `apriImpegno('${c.id}')` : c.tipo === 'doc' ? `apriDocumento('${c.id}')` : c.tipo === 'per' ? `apriPersona('${c.id}')` : '';
+  return `<div class="row" ${click ? `onclick="${click}"` : 'style="cursor:default"'}>
+    <div class="ico" style="background:${c.colore}22">${c.ico}</div>
+    <div class="txt"><div class="t">${esc(c.titolo)}</div><div class="s">${data ? esc(quando(data)) + ' · ' : ''}${esc(c.sotto)}</div></div>
+    ${c.google ? '<span class="badge b-grey">Google</span>' : ''}
+  </div>`;
+}
+
+/* =========================================================
+   Home
+   ========================================================= */
+function vistaHome() {
+  const ora = new Date().getHours();
+  const saluto = ora < 6 ? 'Notte fonda' : ora < 13 ? 'Buongiorno' : ora < 18 ? 'Buon pomeriggio' : 'Buonasera';
+  const nome = S.imp.nome || 'Carmine';
+  let h = `<div class="hello">${saluto}, ${esc(nome)}! 👋</div><p class="sub">Oggi è ${fData(oggi(), true)}. Vediamo un po' che c'è in giro.</p>`;
+
+  if (!S.persone.length) {
+    return h + `<div class="card"><div class="empty"><b>👨‍👩‍👦</b>Per cominciare aggiungi te stesso e la tua famiglia.<br>Poi ci mettiamo i documenti!</div>
+      <div class="azioni"><button class="btn" onclick="apriPersona()">➕ Aggiungi una persona</button></div></div>`;
+  }
+
+  const scaduti = S.documenti.filter(d => d.scadenza && giorniA(d.scadenza) < 0).sort((a, b) => a.scadenza < b.scadenza ? -1 : 1);
+  const presto = S.documenti.filter(d => d.scadenza && giorniA(d.scadenza) >= 0 && giorniA(d.scadenza) <= Math.max(preavvisoDi(d), 7)).sort((a, b) => a.scadenza < b.scadenza ? -1 : 1);
+
+  h += `<div class="quick">
+    <button class="btn" onclick="apriDocumento()">📄 Nuovo documento</button>
+    <button class="btn teal" onclick="apriImpegno()">📌 Nuovo impegno</button>
+    <button class="btn sec" onclick="vai('cerca')">🔍 Cerca in una cartella</button>
+  </div>`;
+
+  h += '<div class="grid2">';
+  if (scaduti.length) {
+    h += `<div class="card"><h2 style="margin-top:0">🚨 Occhio, sono scaduti!</h2>${scaduti.map(rigaDoc).join('')}</div>`;
+  }
+  h += `<div class="card"><h2 style="margin-top:0">⏳ Stanno per scadere</h2>${presto.length ? presto.map(rigaDoc).join('') : '<div class="empty"><b>😎</b>Tutto tranquillo, nessuna scadenza vicina.</div>'}</div>`;
+
+  const prossimi = [];
+  for (let i = 0; i < 14 && prossimi.length < 12; i++) {
+    const s = addGiorni(oggi(), i);
+    coseDelGiorno(s, false).filter(c => c.tipo !== 'doc').forEach(c => prossimi.push([s, c]));
+  }
+  h += `<div class="card"><h2 style="margin-top:0">📌 Nei prossimi giorni</h2>${prossimi.length ? prossimi.map(x => rigaCosa(x[1], x[0])).join('') : '<div class="empty"><b>🛋️</b>Niente in programma per due settimane. Goditela!</div>'}</div>`;
+  h += '</div>';
+  return h;
+}
+
+function rigaDoc(d) {
+  const p = persona(d.personaId), st = statoScadenza(d), t = tipoInfo(d.tipo), nf = filesDi(d).length;
+  return `<div class="row" onclick="apriDocumento('${d.id}')">
+    <div class="ico" style="background:${(p && p.colore) || '#ff6b57'}22">${t[1]}</div>
+    <div class="txt"><div class="t">${esc(d.tipo)}</div><div class="s">${p ? esc(p.emoji || '') + ' ' + esc(p.nome) : 'Nessuno'}${nf ? ' · 📎 ' + nf : ''}${d.numero ? ' · n. ' + esc(d.numero) : ''}</div></div>
+    <span class="badge ${st.cls}">${st.txt}</span>
+  </div>`;
+}
+
+/* =========================================================
+   Calendario interno
+   ========================================================= */
+function chiaveMese() { return iso(S.mese); }
+function celleMese() {
+  const primo = new Date(S.mese);
+  const start = new Date(primo); start.setDate(1 - ((primo.getDay() + 6) % 7));
+  const celle = [];
+  for (let i = 0; i < 42; i++) { const d = new Date(start); d.setDate(start.getDate() + i); celle.push(d); }
+  if (celle[35].getMonth() !== primo.getMonth()) celle.length = 35;
+  return celle;
+}
+function vistaCalendario() {
+  if (!S.mese) { const d = new Date(); S.mese = new Date(d.getFullYear(), d.getMonth(), 1); }
+  if (!S.giornoSel) S.giornoSel = oggi();
+  const celle = celleMese(), meseN = S.mese.getMonth(), oggiS = oggi();
+  let h = `<div class="calhead">
+    <button class="icon-btn" onclick="spostaMese(-1)">‹</button>
+    <h2>${MESI[meseN]} ${S.mese.getFullYear()}</h2>
+    <button class="btn sec small" onclick="meseOggi()">Oggi</button>
+    <button class="icon-btn" onclick="spostaMese(1)">›</button>
+  </div>
+  <label class="toggle" style="margin-bottom:10px"><input type="checkbox" ${S.imp.mostraGoogle ? 'checked' : ''} onchange="toggleGoogle(this.checked)"> Fammi vedere anche il mio Google Calendar ${S.googleCarico[chiaveMese()] === 'carico' ? '⏳' : ''}</label>
+  <div class="cal">${['lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'].map(g => `<div class="dow">${g}</div>`).join('')}`;
+  celle.forEach(d => {
+    const s = iso(d), cose = coseDelGiorno(s, true);
+    const cls = ['day', d.getMonth() !== meseN ? 'fuori' : '', s === oggiS ? 'oggi' : '', s === S.giornoSel ? 'sel' : ''].join(' ');
+    h += `<div class="${cls}" onclick="scegliGiorno('${s}')"><div class="n">${d.getDate()}</div>
+      <div class="dots">${cose.slice(0, 6).map(c => `<span class="dot" style="background:${c.colore}"></span>`).join('')}</div>
+      ${cose.slice(0, 3).map(c => `<div class="pill" style="background:${c.colore}">${c.ico} ${esc(c.titolo)}</div>`).join('')}
+      ${cose.length > 3 ? `<div class="more">+${cose.length - 3} altri</div>` : ''}
+    </div>`;
+  });
+  h += '</div>';
+  const cose = coseDelGiorno(S.giornoSel, true);
+  h += `<h2>${S.giornoSel === oggiS ? 'Oggi' : 'Il giorno'} · ${fData(S.giornoSel, true)}</h2>
+  <div class="card">${cose.length ? cose.map(c => rigaCosa(c)).join('') : '<div class="empty"><b>🌤️</b>Giornata libera!</div>'}
+    <div class="azioni"><button class="btn teal" onclick="apriImpegno(null,'${S.giornoSel}')">📌 Aggiungi un impegno qui</button></div>
+  </div>`;
+  return h;
+}
+function spostaMese(n) { S.mese = new Date(S.mese.getFullYear(), S.mese.getMonth() + n, 1); render(); }
+function meseOggi() { const d = new Date(); S.mese = new Date(d.getFullYear(), d.getMonth(), 1); S.giornoSel = oggi(); render(); }
+function scegliGiorno(s) { S.giornoSel = s; const d = daIso(s); if (d.getMonth() !== S.mese.getMonth()) S.mese = new Date(d.getFullYear(), d.getMonth(), 1); render(); }
+function caricaGoogleMese() {
+  const k = chiaveMese();
+  if (!S.imp.mostraGoogle || S.googleCarico[k]) return;
+  const celle = celleMese();
+  S.googleCarico[k] = 'carico';
+  api('eventiGoogle', iso(celle[0]), iso(celle[celle.length - 1])).then(ev => {
+    S.google[k] = ev; S.googleCarico[k] = 'ok';
+    if (S.vista === 'cal' && chiaveMese() === k) render();
+  }).catch(e => { S.googleCarico[k] = 'errore'; errore(e); });
+}
+function toggleGoogle(v) {
+  S.imp.mostraGoogle = v; render();
+  api('salvaImpostazioni', { mostraGoogle: v }).catch(errore);
+}
+
+/* =========================================================
+   Documenti
+   ========================================================= */
+function vistaDocumenti() {
+  let h = `<div class="quick" style="margin-top:4px">
+    <button class="btn" onclick="apriDocumento()">📄 Nuovo documento</button>
+    <button class="btn sec" onclick="vai('cerca')">🔍 Cerca documenti in una cartella</button>
+  </div>
+  <input class="search" placeholder="🔎 Cerca… (es. patente, Luca, assicurazione)" value="${esc(S.cerca)}" oninput="S.cerca=this.value;disegnaListaDoc()">
+  <div class="chips">
+    <button class="chip ${!S.filtroPersona ? 'on' : ''}" onclick="S.filtroPersona='';render()">Tutti</button>
+    ${S.persone.map(p => `<button class="chip ${S.filtroPersona === p.id ? 'on' : ''}" onclick="S.filtroPersona='${p.id}';render()">${esc(p.emoji || '🙂')} ${esc(p.nome)}</button>`).join('')}
+  </div><div id="listaDoc">${listaDoc()}</div>`;
+  return h;
+}
+function disegnaListaDoc() { $('#listaDoc').innerHTML = listaDoc(); }
+function listaDoc() {
+  const q = S.cerca.toLowerCase().trim();
+  let docs = S.documenti.filter(d => !S.filtroPersona || d.personaId === S.filtroPersona);
+  if (q) docs = docs.filter(d => {
+    const p = persona(d.personaId);
+    return [d.tipo, d.numero, d.note, p && p.nome].join(' ').toLowerCase().includes(q);
+  });
+  if (!docs.length) return `<div class="card"><div class="empty"><b>📭</b>${S.documenti.length ? 'Niente di niente con questi filtri.' : 'Ancora nessun documento. Tocca il + per aggiungerne uno!'}</div></div>`;
+  const gruppi = {};
+  docs.forEach(d => { (gruppi[d.personaId] = gruppi[d.personaId] || []).push(d); });
+  return Object.keys(gruppi).map(pid => {
+    const p = persona(pid);
+    const lista = gruppi[pid].sort((a, b) => statoScadenza(b).liv - statoScadenza(a).liv || ((a.scadenza || '9') < (b.scadenza || '9') ? -1 : 1));
+    return `<div class="card"><h2 style="margin-top:0">${p ? esc(p.emoji || '🙂') + ' ' + esc(p.nome) : '🤷 Senza persona'}</h2>${lista.map(rigaDoc).join('')}</div>`;
+  }).join('');
+}
+
+/* ---------- Finestra documento ---------- */
+let F = null; // documento in modifica
+
+function apriDocumento(id, pre) {
+  if (!S.persone.length) { toast('Prima aggiungi almeno una persona 🙂'); apriPersona(); return; }
+  const d = id ? Object.assign({}, S.documenti.find(x => x.id === id)) : Object.assign({
+    personaId: S.filtroPersona || (S.persone[0] && S.persone[0].id), tipo: '', numero: '', rilascio: '', scadenza: '', preavviso: '', note: '', files: '[]'
+  }, pre || {});
+  F = { d, files: filesDi(d), nuovi: (pre && pre._nuovi) || [], preavvisoToccato: !!id };
+  if (pre && pre._files) F.files = pre._files;
+  const preOpts = [[0, 'Niente promemoria'], [7, '1 settimana prima'], [15, '15 giorni prima'], [30, '1 mese prima'], [60, '2 mesi prima'], [90, '3 mesi prima']];
+  const tInfo = TIPI_DOC.find(x => x[0] === d.tipo);
+  const preVal = d.preavviso !== '' ? +d.preavviso : tInfo ? tInfo[2] : (+S.imp.preavviso || 30);
+  apriFinestra(`<h3>${id ? '✏️ Modifica documento' : '📄 Nuovo documento'}<button class="icon-btn x" onclick="annullaDocumento()">✕</button></h3>
+    <label class="f">Di chi è?</label>
+    <div class="pick" id="fPersona">${S.persone.map(p => `<button type="button" class="${p.id === d.personaId ? 'on' : ''}" data-id="${p.id}" onclick="scegliUno(this)">${esc(p.emoji || '🙂')} ${esc(p.nome)}</button>`).join('')}</div>
+    <label class="f">Che documento è?</label>
+    <input class="in" id="fTipo" list="tipiDoc" value="${esc(d.tipo)}" placeholder="Es. Carta d'identità" oninput="tipoCambiato()">
+    <datalist id="tipiDoc">${TIPI_DOC.map(t => `<option value="${esc(t[0])}">`).join('')}</datalist>
+    <label class="f">Numero (se c'è)</label>
+    <input class="in" id="fNumero" value="${esc(d.numero)}" placeholder="Es. CA12345AB">
+    <div class="two">
+      <div><label class="f">Rilasciato il</label><input class="in" type="date" id="fRilascio" value="${esc(d.rilascio)}"></div>
+      <div><label class="f">Scade il</label><input class="in" type="date" id="fScadenza" value="${esc(d.scadenza)}"></div>
+    </div>
+    <label class="f">Avvisami</label>
+    <select class="in" id="fPreavviso" onchange="F.preavvisoToccato=true">${preOpts.map(o => `<option value="${o[0]}" ${o[0] === preVal ? 'selected' : ''}>${o[1]}</option>`).join('')}</select>
+    <label class="f">Foto e file</label>
+    <div class="files" id="fFiles"></div>
+    <div class="azioni" style="margin-top:8px">
+      <button class="btn sec small" onclick="scegliFile('inFoto')">📷 Scatta una foto</button>
+      <button class="btn sec small" onclick="scegliFile('inFile')">📎 Scegli foto o PDF</button>
+    </div>
+    <label class="f">Note</label>
+    <textarea class="in" id="fNote" placeholder="Dove sta l'originale, a cosa serve…">${esc(d.note)}</textarea>
+    <div class="azioni">
+      ${id ? `<button class="btn danger" onclick="eliminaDocumento('${id}')">🗑️ Elimina</button>` : ''}
+      <button class="btn" id="fSalva" onclick="salvaDocumento()">💾 Salva</button>
+    </div>
+    <p class="mini">📅 Se metti la scadenza, la scrivo anche nel tuo Google Calendar.</p>`);
+  disegnaFiles();
+}
+function tipoCambiato() {
+  if (F.preavvisoToccato) return;
+  const t = TIPI_DOC.find(x => x[0].toLowerCase() === $('#fTipo').value.trim().toLowerCase());
+  if (t) $('#fPreavviso').value = t[2];
+}
+function scegliUno(b) { b.parentNode.querySelectorAll('button').forEach(x => x.classList.remove('on')); b.classList.add('on'); }
+function disegnaFiles() {
+  const box = $('#fFiles'); if (!box) return;
+  box.innerHTML = F.files.length ? F.files.map((f, i) => `<div class="file">${/pdf/.test(f.mime) ? '📕' : '🖼️'}<span>${esc(f.nome)}</span>
+    <button class="btn sec small" onclick="apriFile(${i})">👀 Apri</button>
+    <button class="btn ghost small" onclick="togliFile(${i})" title="Togli">✕</button></div>`).join('')
+    : '<div class="mini">Nessun file. Puoi fare una foto al documento, così ce l\'hai sempre sul telefono.</div>';
+}
+function apriFile(i) { const f = F.files[i]; if (f.url && f.url !== '#') window.open(f.url, '_blank'); else toast('In modalità prova i file non si aprono 🙂'); }
+function togliFile(i) { F.files.splice(i, 1); disegnaFiles(); }
+function scegliFile(idInput) {
+  const inp = document.getElementById(idInput);
+  inp.value = '';
+  inp.onchange = () => caricaFiles(Array.from(inp.files));
+  inp.click();
+}
+function personaScelta(boxId) { const b = document.querySelector('#' + boxId + ' button.on'); return b ? b.dataset.id : ''; }
+
+async function caricaFiles(lista) {
+  const p = persona(personaScelta('fPersona'));
+  const tipo = ($('#fTipo') && $('#fTipo').value.trim()) || 'Documento';
+  for (const file of lista) {
+    try {
+      if (file.size > 30 * 1024 * 1024) { toast('“' + file.name + '” è troppo grande (max 30 MB)'); continue; }
+      toast('Carico “' + file.name + '”… ⏳', 60000);
+      const pronto = await preparaFile(file);
+      const nome = tipo + (p ? ' - ' + p.nome : '') + ' - ' + pronto.nome;
+      const r = await api('caricaFile', p ? p.nome : 'Senza nome', nome, pronto.mime, pronto.base64);
+      F.files.push(r); F.nuovi.push(r.id);
+      disegnaFiles(); toast('File caricato 👍');
+    } catch (e) { errore(e); }
+  }
+}
+// Le foto grandi le rimpicciolisco un po' (si caricano prima). I PDF restano come sono.
+function preparaFile(file) {
+  return new Promise((ok, ko) => {
+    const rd = new FileReader();
+    rd.onerror = () => ko(new Error('Non riesco a leggere il file'));
+    if (/^image\/(jpeg|png|webp|heic)/.test(file.type)) {
+      rd.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const max = 2200, k = Math.min(1, max / Math.max(img.width, img.height));
+          const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          const url = c.toDataURL('image/jpeg', 0.85);
+          ok({ nome: file.name.replace(/\.\w+$/, '') + '.jpg', mime: 'image/jpeg', base64: url.split(',')[1] });
+        };
+        img.onerror = () => ok({ nome: file.name, mime: file.type, base64: rd.result.split(',')[1] });
+        img.src = rd.result;
+      };
+    } else {
+      rd.onload = () => ok({ nome: file.name, mime: file.type || 'application/octet-stream', base64: rd.result.split(',')[1] });
+    }
+    rd.readAsDataURL(file);
+  });
+}
+
+function annullaDocumento() {
+  // i file caricati ora (copie nella cartella dell'app) e non salvati vanno nel cestino
+  F.nuovi.forEach(id => api('cestinaFile', id).catch(() => {}));
+  F = null; chiudiFinestra();
+}
+function salvaDocumento() {
+  const d = F.d;
+  d.personaId = personaScelta('fPersona');
+  d.tipo = $('#fTipo').value.trim();
+  if (!d.personaId) return toast('Scegli di chi è 🙂');
+  if (!d.tipo) return toast('Scrivi che documento è 🙂');
+  d.numero = $('#fNumero').value.trim();
+  d.rilascio = $('#fRilascio').value;
+  d.scadenza = $('#fScadenza').value;
+  d.preavviso = $('#fPreavviso').value;
+  d.note = $('#fNote').value.trim();
+  // file tolti: se erano copie nella cartella dell'app vanno nel cestino (Google rifiuta tutto il resto)
+  const prima = filesDi(S.documenti.find(x => x.id === d.id) || {});
+  const ora = new Set(F.files.map(f => f.id));
+  const tolti = prima.filter(f => !ora.has(f.id)).concat(F.nuovi.filter(id => !ora.has(id)).map(id => ({ id })));
+  d.files = JSON.stringify(F.files);
+  const btn = $('#fSalva'); btn.disabled = true; btn.textContent = 'Un attimo… ⏳';
+  api('salva', 'Documenti', d).then(r => {
+    tolti.forEach(f => api('cestinaFile', f.id).catch(() => {}));
+    const i = S.documenti.findIndex(x => x.id === r.obj.id);
+    if (i >= 0) S.documenti[i] = r.obj; else S.documenti.push(r.obj);
+    if (S.scan) S.scan._aggiornato = true;
+    F = null; chiudiFinestra(); render();
+    toast(r.avviso || (r.obj.scadenza ? 'Fatto! ✅ Messo anche nel calendario 📅' : 'Fatto! ✅'), r.avviso ? 6000 : 2800);
+  }).catch(e => { btn.disabled = false; btn.textContent = '💾 Salva'; errore(e); });
+}
+function eliminaDocumento(id) {
+  chiedi('Lo butto via davvero? 🗑️', 'Tolgo il documento, i suoi promemoria dal calendario e le sue copie dalla cartella dell\'app. I file originali che stanno altrove non li tocco.').then(si => {
+    if (!si) return;
+    api('elimina', 'Documenti', id).then(() => {
+      S.documenti = S.documenti.filter(x => x.id !== id);
+      F = null; chiudiFinestra(); render(); toast('Eliminato 👋');
+    }).catch(errore);
+  });
+}
+
+/* =========================================================
+   Impegni
+   ========================================================= */
+function apriImpegno(id, data) {
+  const o = id ? Object.assign({}, S.impegni.find(x => x.id === id)) : {
+    titolo: '', categoria: 'Altro', data: data || oggi(), oraInizio: '', oraFine: '', tuttoIlGiorno: 'no', persone: '', luogo: '', note: '', ripeti: 'no', ripetiFino: '', promemoria: '60'
+  };
+  const sel = String(o.persone || '').split(',');
+  const prom = [['0', 'Nessuno'], ['10', '10 minuti prima'], ['30', '30 minuti prima'], ['60', '1 ora prima'], ['120', '2 ore prima'], ['1440', 'Il giorno prima'], ['2880', '2 giorni prima'], ['10080', '1 settimana prima']];
+  apriFinestra(`<h3>${id ? '✏️ Modifica impegno' : '📌 Nuovo impegno'}<button class="icon-btn x" onclick="chiudiFinestra()">✕</button></h3>
+    <label class="f">Cosa c'è?</label>
+    <input class="in" id="iTitolo" value="${esc(o.titolo)}" placeholder="Es. Pediatra, colloqui scuola, calcetto…">
+    <label class="f">Tipo</label>
+    <div class="pick" id="iCat">${CATEGORIE.map(c => `<button type="button" class="${c[0] === o.categoria ? 'on' : ''}" data-id="${c[0]}" onclick="scegliUno(this)">${c[1]} ${c[0]}</button>`).join('')}</div>
+    <label class="f">Chi è coinvolto?</label>
+    <div class="pick" id="iPersone">${S.persone.map(p => `<button type="button" class="${sel.includes(p.id) ? 'on' : ''}" data-id="${p.id}" onclick="this.classList.toggle('on')">${esc(p.emoji || '🙂')} ${esc(p.nome)}</button>`).join('') || '<span class="mini">Ancora nessuno in famiglia</span>'}</div>
+    <label class="f">Quando?</label>
+    <input class="in" type="date" id="iData" value="${esc(o.data)}">
+    <label class="toggle" style="margin:10px 0"><input type="checkbox" id="iTutto" ${o.tuttoIlGiorno === 'si' ? 'checked' : ''} onchange="$('#iOre').style.display=this.checked?'none':'grid'"> Tutto il giorno</label>
+    <div class="two" id="iOre" style="display:${o.tuttoIlGiorno === 'si' ? 'none' : 'grid'}">
+      <div><label class="f">Dalle</label><input class="in" type="time" id="iInizio" value="${esc(o.oraInizio)}"></div>
+      <div><label class="f">Alle</label><input class="in" type="time" id="iFine" value="${esc(o.oraFine)}"></div>
+    </div>
+    <label class="f">Dove?</label>
+    <input class="in" id="iLuogo" value="${esc(o.luogo)}" placeholder="Facoltativo">
+    <div class="two">
+      <div><label class="f">Si ripete?</label><select class="in" id="iRipeti" onchange="$('#iFinoBox').style.display=this.value==='no'?'none':'block'">
+        ${[['no', 'No, una volta'], ['settimanale', 'Ogni settimana'], ['mensile', 'Ogni mese'], ['annuale', 'Ogni anno']].map(r => `<option value="${r[0]}" ${r[0] === (o.ripeti || 'no') ? 'selected' : ''}>${r[1]}</option>`).join('')}
+      </select></div>
+      <div id="iFinoBox" style="display:${(o.ripeti || 'no') === 'no' ? 'none' : 'block'}"><label class="f">Fino al</label><input class="in" type="date" id="iFino" value="${esc(o.ripetiFino)}"></div>
+    </div>
+    <label class="f">Avviso sul telefono</label>
+    <select class="in" id="iProm">${prom.map(p => `<option value="${p[0]}" ${p[0] === String(o.promemoria) ? 'selected' : ''}>${p[1]}</option>`).join('')}</select>
+    <label class="f">Note</label>
+    <textarea class="in" id="iNote">${esc(o.note)}</textarea>
+    <div class="azioni">
+      ${id ? `<button class="btn danger" onclick="eliminaImpegno('${id}')">🗑️ Elimina</button>` : ''}
+      <button class="btn teal" id="iSalva" onclick="salvaImpegno('${id || ''}')">💾 Salva</button>
+    </div>`);
+}
+function salvaImpegno(id) {
+  const o = id ? Object.assign({}, S.impegni.find(x => x.id === id)) : {};
+  o.titolo = $('#iTitolo').value.trim();
+  if (!o.titolo) return toast('Scrivi cosa c\'è 🙂');
+  o.categoria = personaScelta('iCat') || 'Altro';
+  o.persone = Array.from(document.querySelectorAll('#iPersone button.on')).map(b => b.dataset.id).join(',');
+  o.data = $('#iData').value;
+  if (!o.data) return toast('Manca il giorno 📅');
+  o.tuttoIlGiorno = $('#iTutto').checked ? 'si' : 'no';
+  o.oraInizio = o.tuttoIlGiorno === 'si' ? '' : $('#iInizio').value;
+  o.oraFine = o.tuttoIlGiorno === 'si' ? '' : $('#iFine').value;
+  if (!o.oraInizio) o.tuttoIlGiorno = 'si';
+  o.luogo = $('#iLuogo').value.trim();
+  o.ripeti = $('#iRipeti').value;
+  o.ripetiFino = o.ripeti === 'no' ? '' : $('#iFino').value;
+  o.promemoria = $('#iProm').value;
+  o.note = $('#iNote').value.trim();
+  const btn = $('#iSalva'); btn.disabled = true; btn.textContent = 'Un attimo… ⏳';
+  api('salva', 'Impegni', o).then(r => {
+    const i = S.impegni.findIndex(x => x.id === r.obj.id);
+    if (i >= 0) S.impegni[i] = r.obj; else S.impegni.push(r.obj);
+    chiudiFinestra(); render();
+    toast(r.avviso || 'Segnato! ✅ È anche nel calendario 📅', r.avviso ? 6000 : 2800);
+  }).catch(e => { btn.disabled = false; btn.textContent = '💾 Salva'; errore(e); });
+}
+function eliminaImpegno(id) {
+  chiedi('Cancello questo impegno?', 'Sparisce anche dal tuo Google Calendar (se si ripete, tutte le volte).').then(si => {
+    if (!si) return;
+    api('elimina', 'Impegni', id).then(() => {
+      S.impegni = S.impegni.filter(x => x.id !== id);
+      chiudiFinestra(); render(); toast('Cancellato 👋');
+    }).catch(errore);
+  });
+}
+
+/* =========================================================
+   Famiglia
+   ========================================================= */
+function vistaFamiglia() {
+  let h = `<h2 style="margin-top:6px">La banda 👨‍👩‍👦</h2>`;
+  if (!S.persone.length) h += `<div class="card"><div class="empty"><b>🫂</b>Nessuno ancora. Comincia da te!</div></div>`;
+  h += '<div class="grid2">' + S.persone.map(p => {
+    const docs = S.documenti.filter(d => d.personaId === p.id);
+    const probl = docs.filter(d => statoScadenza(d).liv >= 2).length;
+    return `<div class="card row" style="border:0;margin:0" onclick="apriPersona('${p.id}')">
+      <div class="av" style="background:${p.colore || '#ff6b57'}33">${esc(p.emoji || '🙂')}</div>
+      <div class="txt"><div class="t">${esc(p.nome)} ${esc(p.cognome || '')}</div>
+      <div class="s">${esc(p.relazione || '')}${p.nascita ? ' · 🎂 ' + fData(p.nascita) : ''}</div>
+      <div class="s">📄 ${docs.length} document${docs.length === 1 ? 'o' : 'i'}${probl ? ` · <span class="badge b-orange">${probl} da guardare</span>` : ''}</div></div>
+    </div>`;
+  }).join('') + '</div>';
+  h += `<div class="quick"><button class="btn" onclick="apriPersona()">➕ Aggiungi qualcuno</button></div>`;
+  return h;
+}
+function apriPersona(id) {
+  const p = id ? Object.assign({}, persona(id)) : { nome: '', cognome: '', relazione: S.persone.length ? '' : 'Io', nascita: '', colore: COLORI[S.persone.length % COLORI.length], emoji: EMOJI[S.persone.length % EMOJI.length], note: '', altriNomi: '', codiceFiscale: '' };
+  apriFinestra(`<h3>${id ? '✏️ ' + esc(p.nome) : '👋 Chi aggiungiamo?'}<button class="icon-btn x" onclick="chiudiFinestra()">✕</button></h3>
+    <div class="two">
+      <div><label class="f">Nome</label><input class="in" id="pNome" value="${esc(p.nome)}" placeholder="Es. Luca"></div>
+      <div><label class="f">Cognome</label><input class="in" id="pCognome" value="${esc(p.cognome)}" placeholder="Es. Rossi"></div>
+    </div>
+    <div class="two">
+      <div><label class="f">Chi è per te?</label><input class="in" id="pRel" list="rel" value="${esc(p.relazione)}" placeholder="Es. Figlio"><datalist id="rel">${RELAZIONI.map(r => `<option value="${r}">`).join('')}</datalist></div>
+      <div><label class="f">Nato/a il</label><input class="in" type="date" id="pNascita" value="${esc(p.nascita)}"></div>
+    </div>
+    <label class="f">Altri nomi o soprannomi (separati da virgola)</label>
+    <input class="in" id="pAltri" value="${esc(p.altriNomi)}" placeholder="Es. Pina, Giuseppina">
+    <label class="f">Codice fiscale</label>
+    <input class="in" id="pCF" value="${esc(p.codiceFiscale)}" placeholder="Facoltativo" style="text-transform:uppercase">
+    <p class="mini">🔍 Nomi, soprannomi e codice fiscale mi servono per riconoscere i suoi documenti quando cerco in una cartella.</p>
+    <label class="f">Faccina</label>
+    <div class="pick" id="pEmoji">${EMOJI.map(e => `<button type="button" class="${e === p.emoji ? 'on' : ''}" data-id="${e}" onclick="scegliUno(this)">${e}</button>`).join('')}</div>
+    <label class="f">Colore nel calendario</label>
+    <div class="pick" id="pColore">${COLORI.map(c => `<button type="button" class="col ${c === p.colore ? 'on' : ''}" data-id="${c}" style="background:${c}" onclick="scegliUno(this)"></button>`).join('')}</div>
+    <label class="f">Note</label>
+    <textarea class="in" id="pNote" placeholder="Allergie, gruppo sanguigno, medico di base…">${esc(p.note)}</textarea>
+    <div class="azioni">
+      ${id ? `<button class="btn danger" onclick="eliminaPersona('${id}')">🗑️ Togli</button>` : ''}
+      <button class="btn" id="pSalva" onclick="salvaPersona('${id || ''}')">💾 Salva</button>
+    </div>`);
+}
+function salvaPersona(id) {
+  const p = id ? Object.assign({}, persona(id)) : {};
+  p.nome = $('#pNome').value.trim();
+  if (!p.nome) return toast('Manca il nome 🙂');
+  p.cognome = $('#pCognome').value.trim();
+  p.relazione = $('#pRel').value.trim();
+  p.nascita = $('#pNascita').value;
+  p.altriNomi = $('#pAltri').value.trim();
+  p.codiceFiscale = $('#pCF').value.trim().toUpperCase();
+  p.emoji = personaScelta('pEmoji') || '🙂';
+  p.colore = personaScelta('pColore') || COLORI[0];
+  p.note = $('#pNote').value.trim();
+  const btn = $('#pSalva'); btn.disabled = true; btn.textContent = 'Un attimo… ⏳';
+  api('salva', 'Persone', p).then(r => {
+    const i = S.persone.findIndex(x => x.id === r.obj.id);
+    if (i >= 0) S.persone[i] = r.obj; else S.persone.push(r.obj);
+    chiudiFinestra(); render(); toast(i >= 0 ? 'Aggiornato ✅' : 'Benvenuto/a ' + r.obj.nome + '! 🎉');
+  }).catch(e => { btn.disabled = false; btn.textContent = '💾 Salva'; errore(e); });
+}
+function eliminaPersona(id) {
+  const n = S.documenti.filter(d => d.personaId === id).length;
+  if (n) return toast('Ha ancora ' + n + ' document' + (n === 1 ? 'o' : 'i') + ': prima spostali o cancellali 🙂', 4500);
+  chiedi('Tolgo questa persona?', 'Gli impegni restano, solo senza il suo nome.').then(si => {
+    if (!si) return;
+    api('elimina', 'Persone', id).then(() => {
+      S.persone = S.persone.filter(x => x.id !== id);
+      chiudiFinestra(); render(); toast('Fatto 👋');
+    }).catch(errore);
+  });
+}
+
+/* =========================================================
+   Cerca documenti in una cartella (SOLO LETTURA)
+   ========================================================= */
+const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+const haParola = (testo, w) => w && (' ' + testo + ' ').includes(' ' + w + ' ');
+
+const INDIZI_TIPO = [
+  [/carta (d )?identita|\bcie\b|carta identita elettronica/, "Carta d'identità"],
+  [/passaport/, 'Passaporto'], [/patente/, 'Patente'],
+  [/tessera sanitaria|\btessera ts\b/, 'Tessera sanitaria'], [/codice fiscale/, 'Codice fiscale'],
+  [/libretto pediatrico|vaccin/, 'Vaccini'],
+  [/assicuraz|polizza|unipol|allianz|generali/, 'Assicurazione auto'],
+  [/\bbollo\b|bolli/, 'Bollo auto'], [/revisione/, 'Revisione auto'],
+  [/libretto/, 'Libretto di circolazione'],
+  [/piano terapeutico/, 'Piano terapeutico'],
+  [/esami|analisi|referto|cartella clinica|ecografia|radiograf/, 'Esami / referti'],
+  [/ricetta/, 'Ricetta medica'], [/invalidita|disabilita|\b104\b/, 'Invalidità / 104'],
+  [/\bisee\b|\bdsu\b/, 'ISEE'], [/busta paga|buste paga|cedolino|\bcud\b|\bcu\b/, 'Busta paga / CU'],
+  [/\b730\b|redditi|unico/, 'Dichiarazione dei redditi'], [/contratto/, 'Contratto'],
+  [/bollett|enel|iren|acqua|\bgas\b|\bluce\b/, 'Bolletta'], [/diploma|laurea|attestato|certificat/, 'Titolo di studio'],
+  [/abbonament/, 'Abbonamento']
+];
+function indovinaTipo(testo) { const t = INDIZI_TIPO.find(x => x[0].test(testo)); return t ? t[1] : 'Altro'; }
+
+function paroleChiave(p) {
+  const forti = [], medie = [], deboli = [];
+  const n = norm(p.nome), c = norm(p.cognome);
+  if (n && c) { forti.push(n + ' ' + c, c + ' ' + n); }
+  String(p.altriNomi || '').split(',').map(norm).filter(Boolean).forEach(a => (a.includes(' ') ? forti : medie).push(a));
+  if (c && c.length >= 4) medie.push(c);
+  if (n && n.length >= 3) medie.push(n);
+  const rel = norm(p.relazione);
+  if (rel && rel !== 'io' && rel !== 'altro') deboli.push(rel);
+  return { forti, medie, deboli, cf: norm(p.codiceFiscale).replace(/ /g, '') };
+}
+function analizza(files) {
+  const chiavi = S.persone.map(p => [p, paroleChiave(p)]);
+  const giaIn = new Set();
+  S.documenti.forEach(d => filesDi(d).forEach(f => f.origine && giaIn.add(f.origine)));
+  const out = [];
+  files.forEach(f => {
+    if (/^(video|audio)\//.test(f.mime || '') || /\.(mkv|mp4|avi|mov|mp3|wav|mpeg|lnk|ini|db|exe|zip|rar)$/i.test(f.nome)) return;
+    const testo = norm((f.percorso || '') + ' ' + f.nome.replace(/\.\w+$/, ''));
+    const compatto = testo.replace(/ /g, '');
+    let best = [], punti = 0;
+    chiavi.forEach(([p, k]) => {
+      let v = 0;
+      if (k.cf && k.cf.length >= 11 && compatto.includes(k.cf)) v = 3;
+      else if (k.forti.some(w => testo.includes(w))) v = 3;
+      else if (k.medie.some(w => haParola(testo, w))) v = 2;
+      else if (k.deboli.some(w => haParola(testo, w))) v = 1;
+      if (v > punti) { punti = v; best = [p]; } else if (v && v === punti) best.push(p);
+    });
+    if (!punti) return;
+    out.push(Object.assign({}, f, { persone: best.map(p => p.id), punti, tipo: indovinaTipo(testo), gia: giaIn.has(f.origine) }));
+  });
+  out.sort((a, b) => b.punti - a.punti || (a.percorso + a.nome).localeCompare(b.percorso + b.nome));
+  return out;
+}
+
+function vistaCerca() {
+  let h = `<div class="calhead"><button class="icon-btn" onclick="vai('doc')">‹</button><h2>🔍 Cerca documenti in una cartella</h2></div>
+  <div class="card">
+    <p style="margin-top:0">Dimmi dove guardare: leggo i nomi dei file e delle sottocartelle e ti dico quali sembrano di qualcuno della famiglia.</p>
+    <p class="mini">🔒 Le tue cartelle le guardo e basta: non sposto, non rinomino e non cancello niente. Se vuoi tenere un documento nell'app, ne faccio una <b>copia</b> nella cartella “Casa Santoro - Documenti”; l'originale resta dov'è, intatto.</p>
+    <label class="f">📁 Cartella di Google Drive (incolla il link)</label>
+    <input class="in" id="cLink" placeholder="https://drive.google.com/drive/folders/…" value="${esc(S.imp.cartellaScansione || '')}">
+    <div class="azioni" style="margin-top:10px">
+      <button class="btn" id="cVai" onclick="cercaDrive()">🔍 Guarda nella cartella Drive</button>
+      <button class="btn sec" onclick="cercaPC()">💻 Scegli una cartella del PC o di una chiavetta</button>
+    </div>
+    <p class="mini">💻 La cartella del PC si sceglie solo da Chrome sul computer (dal telefono usa Drive). Chrome ti chiederà se vuoi “caricare” i file: in realtà li leggo solo qui, non li mando da nessuna parte finché non premi “Aggiungi”.</p>
+  </div>`;
+  if (S.scan) h += risultatiScan();
+  return h;
+}
+function cercaDrive() {
+  const link = $('#cLink').value.trim();
+  if (!link) return toast('Incolla prima il link della cartella 🙂');
+  const btn = $('#cVai'); btn.disabled = true; btn.textContent = 'Sto guardando… ⏳ (può volerci un po\')';
+  api('scansionaCartella', link).then(r => {
+    S.imp.cartellaScansione = link;
+    S.scan = { fonte: 'drive', nome: r.nomeCartella, totale: r.files.length, troncato: r.troncato, lista: analizza(r.files.map(f => Object.assign(f, { origine: 'drive:' + f.id }))) };
+    render();
+  }).catch(e => { btn.disabled = false; btn.textContent = '🔍 Guarda nella cartella Drive'; errore(e); });
+}
+function cercaPC() {
+  const inp = $('#inCartella'); inp.value = '';
+  inp.onchange = () => {
+    const files = Array.from(inp.files);
+    if (!files.length) return;
+    S.pcFiles = {};
+    const lista = files.map((f, i) => {
+      const rel = f.webkitRelativePath || f.name;
+      const parti = rel.split('/'); parti.pop();
+      const key = 'pc' + i;
+      S.pcFiles[key] = f;
+      return { id: key, nome: f.name, mime: f.type, percorso: parti.join(' / '), modificato: iso(new Date(f.lastModified)), origine: 'pc:' + rel + ':' + f.size };
+    });
+    S.scan = { fonte: 'pc', nome: (files[0].webkitRelativePath || '').split('/')[0] || 'cartella', totale: files.length, lista: analizza(lista) };
+    render();
+  };
+  inp.click();
+}
+function risultatiScan() {
+  const sc = S.scan;
+  const giaIn = new Set();
+  S.documenti.forEach(d => filesDi(d).forEach(f => f.origine && giaIn.add(f.origine)));
+  sc.lista.forEach(f => { f.gia = giaIn.has(f.origine); });
+  const visibili = sc.lista.filter(f => !S.ignorati.includes(f.origine));
+  let h = `<h2>Ho guardato ${sc.totale} file in “${esc(sc.nome)}”${sc.troncato ? ' (mi sono fermato a 3000)' : ''}</h2>`;
+  if (!visibili.length) return h + `<div class="card"><div class="empty"><b>🤷</b>Non ho trovato niente che sembri di qualcuno della famiglia.<br>Prova ad aggiungere cognomi, soprannomi o codici fiscali nelle schede delle persone.</div></div>`;
+  const livello = { 3: ['b-green', 'Sicuro'], 2: ['b-teal', 'Probabile'], 1: ['b-grey', 'Forse'] };
+  const perPersona = {};
+  visibili.forEach(f => { const k = f.persone.length === 1 ? f.persone[0] : 'piu'; (perPersona[k] = perPersona[k] || []).push(f); });
+  h += `<p class="sub">🎯 ${visibili.length} sembrano di qualcuno di famiglia. Tocca “Aggiungi” per metterli nell'app (ne faccio una copia).</p>`;
+  Object.keys(perPersona).forEach(k => {
+    const p = persona(k);
+    h += `<div class="card"><h2 style="margin-top:0">${p ? esc(p.emoji || '🙂') + ' ' + esc(p.nome) : '👥 Più persone possibili'}</h2>`;
+    perPersona[k].forEach(f => {
+      const i = sc.lista.indexOf(f), lv = livello[f.punti];
+      const nomi = f.persone.map(id => (persona(id) || {}).nome).join(' o ');
+      h += `<div class="row" style="cursor:default">
+        <div class="ico" style="background:var(--accent-soft)">${/pdf/i.test(f.mime) || /\.pdf$/i.test(f.nome) ? '📕' : /^image/.test(f.mime) ? '🖼️' : '📄'}</div>
+        <div class="txt"><div class="t">${esc(f.nome)}</div>
+          <div class="s">${f.percorso ? '📁 ' + esc(f.percorso) + ' · ' : ''}${esc(tipoInfo(f.tipo)[1] + ' ' + f.tipo)}${k === 'piu' ? ' · ' + esc(nomi) : ''}</div>
+          <div style="margin-top:4px"><span class="badge ${lv[0]}">${lv[1]}</span> ${f.gia ? '<span class="badge b-green">✅ Già nell\'app</span>' : ''}</div></div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${f.gia ? '' : `<button class="btn small" onclick="aggiungiDaScan(${i})">➕ Aggiungi</button>`}
+          ${sc.fonte === 'drive' ? `<button class="btn sec small" onclick="window.open('${esc(f.url)}','_blank')">👀 Apri</button>` : ''}
+          <button class="btn ghost small" onclick="ignoraDaScan(${i})">🙈 Nascondi</button>
+        </div>
+      </div>`;
+    });
+    h += '</div>';
+  });
+  if (S.ignorati.length) h += `<p class="mini" style="text-align:center">Hai nascosto ${S.ignorati.length} file. <a href="#" onclick="ripristina();return false">Fammeli rivedere</a></p>`;
+  return h;
+}
+async function aggiungiDaScan(i) {
+  const f = S.scan.lista[i];
+  const p = persona(f.persone[0]);
+  try {
+    let copia;
+    toast('Faccio una copia nella cartella dell\'app… ⏳', 60000);
+    if (S.scan.fonte === 'drive') {
+      copia = await api('copiaFileDrive', f.id, p ? p.nome : 'Senza nome');
+    } else {
+      const file = S.pcFiles[f.id];
+      if (!file) throw new Error('Riscegli la cartella, il file non è più disponibile');
+      const pronto = await preparaFile(file);
+      copia = await api('caricaFile', p ? p.nome : 'Senza nome', f.nome, pronto.mime, pronto.base64);
+    }
+    copia.origine = f.origine;
+    toast('Copiato 👍 Ora controlla i dati e salva', 2500);
+    apriDocumento(null, { personaId: p ? p.id : '', tipo: f.tipo === 'Altro' ? '' : f.tipo, _files: [copia], _nuovi: [copia.id], note: 'Originale: ' + (f.percorso ? f.percorso + ' / ' : '') + f.nome });
+  } catch (e) { errore(e); }
+}
+function ignoraDaScan(i) {
+  const f = S.scan.lista[i];
+  S.ignorati.push(f.origine); render();
+  api('ignoraFile', f.origine, f.nome).catch(errore);
+}
+function ripristina() { S.ignorati = []; render(); api('ripristinaIgnorati').catch(errore); }
+
+/* =========================================================
+   Impostazioni
+   ========================================================= */
+function apriImpostazioni() {
+  const i = S.imp;
+  apriFinestra(`<h3>⚙️ Impostazioni<button class="icon-btn x" onclick="chiudiFinestra()">✕</button></h3>
+    <label class="f">Come ti chiamo?</label>
+    <input class="in" id="sNome" value="${esc(i.nome)}">
+    <label class="f">Dove metto scadenze e impegni nel Google Calendar?</label>
+    <select class="in" id="sCal" onchange="$('#sAltroBox').style.display=this.value==='altro'?'block':'none'">
+      <option value="dedicato" ${i.calendario === 'dedicato' ? 'selected' : ''}>In un calendario a parte “🏠 Casa Santoro” (consigliato)</option>
+      <option value="principale" ${i.calendario === 'principale' ? 'selected' : ''}>Nel mio calendario principale</option>
+      <option value="altro" ${i.calendario === 'altro' ? 'selected' : ''}>In un calendario di un altro account</option>
+    </select>
+    <div id="sAltroBox" style="display:${i.calendario === 'altro' ? 'block' : 'none'}">
+      <label class="f">ID del calendario (es. tuonome@gmail.com)</label>
+      <input class="in" id="sAltro" value="${esc(i.calendarioAltro || '')}">
+      <p class="mini">Quel calendario va condiviso con ${esc(S.email || 'questo account')} con il permesso “Apportare modifiche agli eventi”.</p>
+    </div>
+    <label class="f">Preavviso di base per le scadenze</label>
+    <select class="in" id="sPre">${[[7, '1 settimana'], [15, '15 giorni'], [30, '1 mese'], [60, '2 mesi']].map(o => `<option value="${o[0]}" ${+i.preavviso === o[0] ? 'selected' : ''}>${o[1]}</option>`).join('')}</select>
+    <label class="toggle" style="margin-top:14px"><input type="checkbox" id="sEmail" ${i.emailAttiva || i.email ? 'checked' : ''}> Mandami un'email la mattina quando qualcosa sta per scadere</label>
+    <label class="toggle" style="margin-top:10px"><input type="checkbox" id="sGoogle" ${i.mostraGoogle ? 'checked' : ''}> Fammi vedere il mio Google Calendar dentro l'app</label>
+    <div class="azioni"><button class="btn" id="sSalva" onclick="salvaImpostazioni()">💾 Salva</button></div>
+    <div class="sep"></div>
+    <p class="mini">Strumenti</p>
+    <div class="azioni" style="margin-top:6px">
+      <button class="btn sec small" onclick="risincronizza()">🔁 Rimetti tutto nel calendario</button>
+      ${S.link.cartella ? `<button class="btn sec small" onclick="window.open('${esc(S.link.cartella)}','_blank')">📁 Apri la cartella dei documenti</button>` : ''}
+      ${S.link.foglio ? `<button class="btn sec small" onclick="window.open('${esc(S.link.foglio)}','_blank')">📊 Apri il foglio dei dati</button>` : ''}
+    </div>
+    <p class="mini">${S.email ? 'Collegato come ' + esc(S.email) : ''}</p>`);
+}
+function salvaImpostazioni() {
+  const nuove = {
+    nome: $('#sNome').value.trim() || 'Carmine', calendario: $('#sCal').value, calendarioAltro: $('#sAltro').value.trim(),
+    preavviso: +$('#sPre').value, email: $('#sEmail').checked, mostraGoogle: $('#sGoogle').checked
+  };
+  const cambiaCal = nuove.calendario !== S.imp.calendario;
+  const btn = $('#sSalva'); btn.disabled = true; btn.textContent = cambiaCal ? 'Sposto gli eventi… ⏳' : 'Un attimo… ⏳';
+  api('salvaImpostazioni', nuove).then(r => {
+    S.imp = r.impostazioni; S.google = {}; S.googleCarico = {};
+    chiudiFinestra(); render();
+    toast(r.spostati ? 'Fatto! Ho rimesso ' + r.spostati + ' cose nel nuovo calendario 📅' : 'Salvato ✅');
+  }).catch(e => { btn.disabled = false; btn.textContent = '💾 Salva'; errore(e); });
+}
+function risincronizza() {
+  toast('Rimetto tutto nel calendario… ⏳', 60000);
+  api('sincronizzaTutto').then(n => toast('Fatto! ' + n + ' cose sistemate nel calendario 📅')).catch(errore);
+}
+
+/* =========================================================
+   Finestre e scelte
+   ========================================================= */
+function apriFinestra(html) {
+  chiudiFinestra();
+  const v = document.createElement('div'); v.className = 'velo'; v.id = 'velo';
+  v.innerHTML = `<div class="sheet">${html}</div>`;
+  v.addEventListener('click', e => { if (e.target === v) { F ? annullaDocumento() : chiudiFinestra(); } });
+  document.body.appendChild(v);
+}
+function chiudiFinestra() { const v = $('#velo'); if (v) v.remove(); }
+function chiedi(titolo, testo) {
+  return new Promise(ok => {
+    const v = document.createElement('div'); v.className = 'velo'; v.style.zIndex = 70;
+    v.innerHTML = `<div class="sheet"><h3>${esc(titolo)}</h3><p>${esc(testo)}</p><div class="azioni"><button class="btn sec" id="cNo">No, lascia stare</button><button class="btn danger" id="cSi">Sì</button></div></div>`;
+    document.body.appendChild(v);
+    v.querySelector('#cNo').onclick = () => { v.remove(); ok(false); };
+    v.querySelector('#cSi').onclick = () => { v.remove(); ok(true); };
+  });
+}
+function sceltaNuovo() {
+  apriFinestra(`<h3>Cosa aggiungiamo? ✨<button class="icon-btn x" onclick="chiudiFinestra()">✕</button></h3>
+    <div class="row" onclick="apriDocumento()"><div class="ico" style="background:var(--primary-soft)">📄</div><div class="txt"><div class="t">Un documento</div><div class="s">Carta d'identità, patente, assicurazione…</div></div></div>
+    <div class="row" onclick="apriImpegno(null, S.vista==='cal'?S.giornoSel:null)"><div class="ico" style="background:var(--accent-soft)">📌</div><div class="txt"><div class="t">Un impegno</div><div class="s">Visite, scuola, sport, feste…</div></div></div>
+    <div class="row" onclick="apriPersona()"><div class="ico" style="background:var(--warn-soft)">👤</div><div class="txt"><div class="t">Una persona</div><div class="s">Qualcuno della famiglia</div></div></div>
+    <div class="row" onclick="chiudiFinestra();vai('cerca')"><div class="ico" style="background:var(--ok-soft)">🔍</div><div class="txt"><div class="t">Cerca in una cartella</div><div class="s">Trovo io i documenti della famiglia</div></div></div>`);
+}
+
+/* =========================================================
+   Modalita' prova (solo quando l'app NON e' su Google)
+   ========================================================= */
+const PROVA = (() => {
+  const K = 'casaSantoroProva';
+  const leggi = () => { try { return JSON.parse(localStorage.getItem(K)) || null; } catch (e) { return null; } };
+  let db = leggi();
+  if (!db) {
+    const t = new Date(), a = n => { const d = new Date(t); d.setDate(d.getDate() + n); return iso(d); };
+    db = {
+      Persone: [
+        { id: 'p1', nome: "Mario", cognome: "Rossi", relazione: "Io", nascita: "1980-05-12", colore: '#ff6b57', emoji: '🧔', note: '', altriNomi: '', codiceFiscale: '' },
+        { id: 'p2', nome: "Anna", cognome: "Bianchi", relazione: "Moglie", nascita: "1984-" + a(5).slice(5), colore: "#12b5a5", emoji: "👩", note: "", altriNomi: "Annarella", codiceFiscale: '' },
+        { id: 'p3', nome: "Luca", cognome: "Rossi", relazione: "Figlio", nascita: "2020-03-02", colore: '#6b8cff', emoji: '👦', note: '', altriNomi: '', codiceFiscale: '' }
+      ],
+      Documenti: [
+        { id: 'd1', personaId: 'p1', tipo: "Carta d'identità", numero: 'CA00000AA', rilascio: '2017-01-10', scadenza: a(20), preavviso: '60', note: '', files: '[]' },
+        { id: 'd2', personaId: 'p2', tipo: 'Tessera sanitaria', numero: '', rilascio: '', scadenza: a(-3), preavviso: '30', note: '', files: '[]' },
+        { id: 'd3', personaId: 'p3', tipo: 'Passaporto', numero: '', rilascio: '', scadenza: a(400), preavviso: '90', note: '', files: '[]' }
+      ],
+      Impegni: [
+        { id: 'i1', titolo: 'Pediatra', categoria: 'Salute', data: a(2), oraInizio: '17:30', oraFine: '18:00', tuttoIlGiorno: 'no', persone: 'p3', luogo: 'Studio medico', note: '', ripeti: 'no', ripetiFino: '', promemoria: '60' },
+        { id: 'i2', titolo: 'Riunione di gruppo', categoria: 'Chiesa', data: a(-6), oraInizio: '20:30', oraFine: '22:00', tuttoIlGiorno: 'no', persone: 'p1,p2', luogo: '', note: '', ripeti: 'settimanale', ripetiFino: '', promemoria: '30' }
+      ],
+      Ignorati: [], imp: { nome: "Mario", calendario: 'dedicato', preavviso: 30, mostraGoogle: true, email: false, cartellaScansione: '', calendarioAltro: '' }
+    };
+  }
+  const salvaDb = () => { try { localStorage.setItem(K, JSON.stringify(db)); } catch (e) {} };
+  return {
+    getTutto: () => ({ persone: db.Persone, documenti: db.Documenti, impegni: db.Impegni, ignorati: db.Ignorati.map(x => x.id), impostazioni: db.imp, link: {}, email: 'prova@esempio.it' }),
+    salva: (tipo, o) => { if (!o.id) o.id = Math.random().toString(16).slice(2, 10); const l = db[tipo], i = l.findIndex(x => x.id === o.id); if (i >= 0) l[i] = o; else l.push(o); salvaDb(); return { obj: o, avviso: '' }; },
+    elimina: (tipo, id) => { db[tipo] = db[tipo].filter(x => x.id !== id); salvaDb(); return true; },
+    caricaFile: (p, nome, mime) => ({ id: 'f' + Date.now(), nome, mime, url: '#' }),
+    copiaFileDrive: (id) => ({ id: 'f' + Date.now(), nome: 'copia.pdf', mime: 'application/pdf', url: '#' }),
+    cestinaFile: () => true,
+    eventiGoogle: (da) => [{ titolo: 'Cena dai nonni', data: addGiorni(da, 12), fine: addGiorni(da, 12), ora: '20:00', oraFine: '23:00', luogo: '', calendario: 'Personale', colore: '#9e69af' }],
+    salvaImpostazioni: n => { Object.assign(db.imp, n); salvaDb(); return { impostazioni: Object.assign({ emailAttiva: !!db.imp.email }, db.imp), spostati: 0 }; },
+    sincronizzaTutto: () => db.Documenti.length + db.Impegni.length,
+    scansionaCartella: () => ({ nomeCartella: 'Documenti di prova', troncato: false, files: [
+      { id: 'x1', nome: 'tessera sanitaria anna.pdf', mime: 'application/pdf', url: '#', percorso: '', modificato: '2025-01-01' },
+      { id: 'x2', nome: 'LIBRETTO PEDIATRICO LUCA (VACCINI).pdf', mime: 'application/pdf', url: '#', percorso: '', modificato: '2025-01-01' },
+      { id: 'x3', nome: 'cv anna bianchi.pdf', mime: 'application/pdf', url: '#', percorso: 'curriculum', modificato: '2025-01-01' },
+      { id: 'x4', nome: 'scansione.pdf', mime: 'application/pdf', url: '#', percorso: 'passaporto / Mario', modificato: '2025-01-01' },
+      { id: 'x5', nome: 'menu pizzeria.pdf', mime: 'application/pdf', url: '#', percorso: '', modificato: '2025-01-01' },
+      { id: 'x6', nome: 'film.mkv', mime: 'video/x-matroska', url: '#', percorso: '', modificato: '2025-01-01' }
+    ] }),
+    ignoraFile: (id, nome) => { db.Ignorati.push({ id, nome }); salvaDb(); return true; },
+    ripristinaIgnorati: () => { db.Ignorati = []; salvaDb(); return true; }
+  };
+})();
+
+carica().catch(e => { $('#caricamento').innerHTML = '<div class="casa">😵</div>Non riesco ad aprire casa.<div class="mini">' + esc(e && e.message || e) + '</div><button class="btn" onclick="location.reload()">Riprova</button>'; });
+</script>
+</body>
+</html>
