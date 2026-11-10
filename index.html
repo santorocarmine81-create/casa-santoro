@@ -65,7 +65,7 @@
   <script>
     // Indirizzo della web app su Google Apps Script.
     // Se resta vuoto, la prima volta l'app chiede di incollarlo (e lo ricorda su quel dispositivo).
-    var APP_URL_FISSO = '';
+    var APP_URL_FISSO = 'https://script.google.com/macros/s/AKfycbz94kg2wAngUGBv68LgJHRPgCmkYh-N8zBHUcAyoJrlzrG5IgsAtQptKYO1tiCzG46O/exec';
     var APP_URL = APP_URL_FISSO;
     try { APP_URL = APP_URL_FISSO || localStorage.getItem('casaSantoroUrl') || ''; } catch (e) {}
     var frame, timer;
