@@ -79,6 +79,8 @@ function vista(el) {
     createFolder: n => vista(elemento('cartella', n, el.id)),
     createFile: b => vista(elemento('file', b.name, el.id)),
     getFiles: () => iter(Object.values(DRIVE).filter(x => x.tipo === 'file' && x.genitori.includes(el.id)).map(vista)),
+    getFilesByName: n => iter(Object.values(DRIVE).filter(x => x.tipo === 'file' && x.nome === n && x.genitori.includes(el.id)).map(vista)),
+    getBlob: () => ({ getDataAsString: () => el.contenuto || '' }),
     getFolders: () => iter(Object.values(DRIVE).filter(x => x.tipo === 'cartella' && x.genitori.includes(el.id)).map(vista))
   };
   return v;
@@ -262,6 +264,19 @@ fetch('../apps-script/Codice.gs').then(r => r.text()).then(codice => {
     const r = scansionaCartella('https://drive.google.com/drive/folders/' + cartellaEsterna.id);
     vero(r.files.length === 1 && r.files[0].nome === 'passaporto carmine.pdf');
     vero(JSON.stringify(DRIVE[esterno.id]) === prima, 'il file esterno e\' cambiato!');
+  });
+  prova('Importa da Drive: legge importazione-casa.json e l\'elenco dei file, senza cambiare niente', () => {
+    const imp = elemento('file', 'importazione-casa.json', cartellaEsterna.id);
+    imp.contenuto = '{"formato":"casa-santoro-importazione","versione":1}';
+    const sotto = elemento('cartella', 'enza', cartellaEsterna.id);
+    elemento('file', 'tessera sanitaria enza.pdf', sotto.id);
+    const prima = JSON.stringify(Object.values(DRIVE));
+    const r = leggiImportazioneDrive('https://drive.google.com/drive/folders/' + cartellaEsterna.id + '?usp=sharing');
+    vero(JSON.parse(r.testo).formato === 'casa-santoro-importazione', 'testo letto male');
+    vero(r.files.some(f => f.nome === 'tessera sanitaria enza.pdf' && f.percorso === 'enza'), 'sottocartella non elencata');
+    vero(JSON.stringify(Object.values(DRIVE)) === prima, 'HA CAMBIATO QUALCOSA NEL DRIVE');
+    lancia(() => leggiImportazioneDrive('https://drive.google.com/drive/folders/' + sotto.id), 'non c');
+    lancia(() => leggiImportazioneDrive('ciao'), 'Non riconosco');
   });
   prova('Copia da Drive: copia nella cartella dell\'app, originale intatto; la copia si puo\' cestinare', () => {
     const prima = JSON.stringify(DRIVE[esterno.id]);

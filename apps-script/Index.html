@@ -77,6 +77,11 @@ h2{font-size:19px;margin:22px 0 10px;font-weight:800}
 .sp-row.fatto .t{text-decoration:line-through;color:var(--muted)}
 .qtab{background:var(--warn-soft);color:#b45309;border-radius:8px;padding:1px 7px;font-size:13px;font-weight:800;margin-left:4px}
 .presi{opacity:.85}
+.sp-row.spento .t{color:var(--muted)}
+.sp-row .check.on{background:var(--accent)}
+.dubbio{color:#b45309!important}
+ol.passi{padding-left:20px;margin:6px 0 10px}
+ol.passi li{margin-bottom:6px}
 .barra{height:9px;border-radius:9px;background:var(--line);overflow:hidden;margin-top:5px}
 .barra i{display:block;height:100%;border-radius:9px}
 .prog{cursor:pointer;margin:0}
@@ -348,11 +353,11 @@ function vai(v) {
   if (v === 'spesa') aggiornaSpesa(true);
 }
 
-const SCHEDA_DI = { cerca: 'doc', prog: 'altro', num: 'altro', fam: 'altro' };
+const SCHEDA_DI = { cerca: 'doc', importa: 'doc', prog: 'altro', num: 'altro', fam: 'altro' };
 function render() {
   const scheda = SCHEDA_DI[S.vista] || S.vista;
   document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === scheda));
-  $('#fab').style.display = S.vista === 'cerca' || S.vista === 'spesa' ? 'none' : 'block';
+  $('#fab').style.display = ['cerca', 'spesa', 'importa'].includes(S.vista) ? 'none' : 'block';
   const m = $('#main');
   let h = DEMO ? '<div class="demo">🧪 <b>Modalità prova</b>: i dati restano solo in questo browser. Quando l\'app sarà su Google, tutto andrà nel tuo Drive e nel calendario.</div>' : '';
   if (S.vista === 'home') h += vistaHome();
@@ -363,6 +368,7 @@ function render() {
   if (S.vista === 'spesa') h += vistaSpesa();
   if (S.vista === 'prog') h += vistaProgetti();
   if (S.vista === 'num') h += vistaNumeri();
+  if (S.vista === 'importa') h += vistaImporta();
   m.innerHTML = h;
   if (S.vista === "cal" && S.calModo !== "elenco") caricaGoogleMese();
 }
@@ -659,6 +665,7 @@ function toggleGoogle(v) {
 function vistaDocumenti() {
   let h = `<div class="quick" style="margin-top:4px">
     <button class="btn" onclick="apriDocumento()">📄 Nuovo documento</button>
+    <button class="btn teal" onclick="vai('importa')">📥 Importa da cartella</button>
     <button class="btn sec" onclick="vai('cerca')">🔍 Cerca documenti in una cartella</button>
   </div>
   <input class="search" placeholder="🔎 Cerca… (es. patente, Luca, assicurazione)" value="${esc(S.cerca)}" oninput="S.cerca=this.value;disegnaListaDoc()">
@@ -1205,6 +1212,280 @@ function ignoraDaScan(i) {
 function ripristina() { S.ignorati = []; render(); api('ripristinaIgnorati').catch(errore); }
 
 /* =========================================================
+   Importa da cartella (file importazione-casa.json preparato dalla chat di Claude)
+   Le cartelle si LEGGONO soltanto: i file vengono copiati nella cartella dell'app.
+   ========================================================= */
+const NOME_IMPORT = 'importazione-casa.json';
+// Documenti che di solito ognuno ha uno solo (per auto/moto conta anche il numero o la targa)
+const TIPI_UNICI = ["carta d identita", 'passaporto', 'patente', 'tessera sanitaria', 'codice fiscale', 'assicurazione auto', 'assicurazione moto', 'bollo auto', 'revisione auto', 'assicurazione casa', 'libretto di circolazione', 'isee', 'invalidita 104'];
+const TIPI_PERSONALI = ["carta d identita", 'passaporto', 'patente', 'tessera sanitaria', 'codice fiscale', 'isee', 'invalidita 104'];
+const S_IMP = { dati: null }; // importazione in corso
+
+function vistaImporta() {
+  let h = `<div class="calhead"><button class="icon-btn" onclick="vai('doc')">‹</button><h2>📥 Importa da cartella</h2></div>`;
+  if (S_IMP.dati) return h + anteprimaImport();
+  h += `<div class="card">
+    <p style="margin-top:0"><b>Come funziona</b></p>
+    <ol class="passi">
+      <li>Apri la chat <b>“Lettore documenti di casa”</b> su Claude e dille quale cartella leggere.</li>
+      <li>La chat legge i documenti (senza toccarli) e crea nella cartella il file <b>${NOME_IMPORT}</b>.</li>
+      <li>Qui premi <b>Scegli la cartella</b> e scegli la stessa cartella: ti mostro cosa ho trovato e tu confermi.</li>
+    </ol>
+    <p class="mini">🔒 La cartella la leggo e basta. Dei documenti faccio una <b>copia</b> nella cartella dell'app: gli originali restano dove sono, intatti.</p>
+    <div class="azioni"><button class="btn" onclick="importaDaPC()">📂 Scegli la cartella (PC, disco o chiavetta)</button></div>
+    <p class="mini">Si sceglie da Chrome sul computer. Chrome ti chiede se vuoi “caricare” i file: in realtà li leggo qui, e copio solo quelli che importi.</p>
+    <div class="sep"></div>
+    <label class="f">Oppure: cartella di Google Drive (incolla il link)</label>
+    <div class="spadd"><input class="in" id="impLink" placeholder="https://drive.google.com/drive/folders/…"><button class="btn sec" id="impVai" onclick="importaDaDrive()">Leggi</button></div>
+  </div>`;
+  return h;
+}
+
+function importaDaPC() {
+  const inp = $('#inCartella'); inp.value = '';
+  inp.onchange = async () => {
+    const files = Array.from(inp.files);
+    if (!files.length) return;
+    // percorsi relativi alla cartella scelta (senza il nome della cartella)
+    const mappa = {};
+    let jsonFile = null, jsonProf = 99;
+    files.forEach(f => {
+      const parti = (f.webkitRelativePath || f.name).split('/');
+      const rel = parti.slice(1).join('/') || f.name;
+      mappa[rel.toLowerCase()] = f;
+      if (f.name.toLowerCase() === NOME_IMPORT && parti.length < jsonProf) { jsonFile = f; jsonProf = parti.length; }
+    });
+    if (!jsonFile) return toast('In questa cartella non c\'è il file ' + NOME_IMPORT + '. Fallo preparare prima alla chat di Claude 🙂', 6000);
+    try {
+      const testo = await jsonFile.text();
+      preparaImport(testo, { fonte: 'pc', nome: (files[0].webkitRelativePath || '').split('/')[0], file: rel => mappa[String(rel || '').toLowerCase()] });
+    } catch (e) { errore(e); }
+  };
+  inp.click();
+}
+
+function importaDaDrive() {
+  const link = $('#impLink').value.trim();
+  if (!link) return toast('Incolla prima il link della cartella 🙂');
+  const btn = $('#impVai'); btn.disabled = true; btn.textContent = '⏳';
+  api('leggiImportazioneDrive', link).then(r => {
+    const mappa = {};
+    r.files.forEach(f => { mappa[(f.percorso ? f.percorso.split(' / ').join('/') + '/' : '') .toLowerCase() + f.nome.toLowerCase()] = f; });
+    preparaImport(r.testo, { fonte: 'drive', nome: r.nomeCartella, file: rel => mappa[String(rel || '').toLowerCase()] });
+  }).catch(e => { btn.disabled = false; btn.textContent = 'Leggi'; errore(e); });
+}
+
+// Cerca una persona dell'app: codice fiscale, poi nome e cognome, poi soprannomi, poi solo il nome (se non ci sono omonimi)
+function trovaPersonaImport(p, extra) {
+  if (!p) return null;
+  const tutte = S.persone.concat(extra || []);
+  const cf = String(p.codiceFiscale || '').toUpperCase().replace(/\s/g, '');
+  if (cf) { const x = tutte.find(q => String(q.codiceFiscale || '').toUpperCase() === cf); if (x) return x; }
+  const n = norm(p.nome), c = norm(p.cognome);
+  if (n && c) {
+    const x = tutte.find(q => (norm(q.nome) === n && norm(q.cognome) === c) || (norm(q.nome) === c && norm(q.cognome) === n));
+    if (x) return x;
+  }
+  const nomi = [n].concat(String(p.altriNomi || '').split(',').map(norm)).filter(Boolean);
+  const perSoprannome = tutte.filter(q => {
+    const suoi = [norm(q.nome)].concat(String(q.altriNomi || '').split(',').map(norm)).filter(Boolean);
+    return nomi.some(x => suoi.includes(x)) && (!c || !q.cognome || norm(q.cognome) === c);
+  });
+  return perSoprannome.length === 1 ? perSoprannome[0] : null;
+}
+
+function preparaImport(testo, fonte) {
+  let j;
+  try { j = JSON.parse(String(testo).replace(/^﻿/, '')); } catch (e) { return toast('Il file ' + NOME_IMPORT + ' è rovinato: fallo rifare alla chat 😅', 6000); }
+  if (!j || j.formato !== 'casa-santoro-importazione') return toast('Questo file non è per Casa Santoro/Longobardi 🤔', 5000);
+  const voci = [];
+  const nuove = []; // persone che verranno create (finte, per gli abbinamenti)
+  const chiave = p => p ? (String(p.codiceFiscale || '').toUpperCase() || norm((p.nome || '') + ' ' + (p.cognome || ''))) : '';
+
+  // 1. Persone
+  const elencoPersone = (j.persone || []).slice();
+  (j.documenti || []).forEach(d => { if (d.persona && (d.persona.nome || d.persona.cognome) && !elencoPersone.some(p => chiave(p) === chiave(d.persona))) elencoPersone.push(d.persona); });
+  elencoPersone.forEach(p => {
+    if (!p.nome && !p.cognome) return;
+    const gia = trovaPersonaImport(p, nuove);
+    if (gia) {
+      if (!gia._nuova) voci.push({ tipo: 'persona', dati: p, stato: 'gia', sel: false, msg: 'C\'è già: ' + gia.nome, persona: gia });
+      return;
+    }
+    const finta = Object.assign({ _nuova: true, id: 'nuova' + nuove.length }, p);
+    nuove.push(finta);
+    voci.push({ tipo: 'persona', dati: p, stato: 'nuovo', sel: true, msg: 'Nuova persona', persona: finta });
+  });
+  const personaDi = p => trovaPersonaImport(p, nuove);
+
+  // 2. Documenti
+  (j.documenti || []).forEach(d => {
+    const v = { tipo: 'doc', dati: d, sel: true, stato: 'nuovo', msg: '', file: d.file ? fonte.file(d.file) : null };
+    v.persona = personaDi(d.persona);
+    if (!v.persona) { v.stato = 'problema'; v.sel = false; v.msg = 'Non so di chi è: aggiungilo a mano'; voci.push(v); return; }
+    if (!d.tipo) { v.stato = 'problema'; v.sel = false; v.msg = 'Tipo di documento mancante'; voci.push(v); return; }
+    if (d.file && !v.file) v.msg = '⚠️ File “' + d.file + '” non trovato nella cartella: importo solo i dati';
+    const origine = (fonte.fonte === 'drive' && v.file ? 'drive:' + v.file.id : 'pc:' + d.file);
+    const t = norm(d.tipo);
+    const stessi = v.persona._nuova ? [] : S.documenti.filter(x => x.personaId === v.persona.id && norm(x.tipo) === t);
+    const giaFile = S.documenti.find(x => filesDi(x).some(f => f.origine === origine));
+    let simile = null;
+    if (giaFile) simile = giaFile;
+    else if (TIPI_UNICI.includes(t)) simile = stessi.find(x => TIPI_PERSONALI.includes(t) || !d.numero || !x.numero || norm(x.numero) === norm(d.numero));
+    else simile = stessi.find(x => (d.numero && norm(x.numero) === norm(d.numero)) || (d.scadenza && x.scadenza === d.scadenza && x.rilascio === (d.rilascio || '')));
+    if (simile) {
+      v.esistente = simile;
+      if (giaFile || !d.scadenza || (simile.scadenza && d.scadenza <= simile.scadenza)) {
+        v.stato = 'gia'; v.sel = false;
+        v.msg = giaFile ? 'Già importato' : (simile.scadenza && d.scadenza && d.scadenza < simile.scadenza ? 'Nell\'app c\'è già uno più recente' : 'C\'è già nell\'app');
+      } else {
+        v.stato = 'aggiorna';
+        v.msg = 'Aggiorno quello che c\'è' + (simile.scadenza ? ' (scadeva il ' + fData(simile.scadenza) + ')' : '');
+      }
+    }
+    v.origine = origine;
+    voci.push(v);
+  });
+
+  // 3. Impegni
+  (j.impegni || []).forEach(o => {
+    const v = { tipo: 'imp', dati: o, sel: true, stato: 'nuovo', msg: '' };
+    if (!o.titolo || !o.data) { v.stato = 'problema'; v.sel = false; v.msg = 'Manca il titolo o la data'; }
+    else if (o.data < oggi()) { v.stato = 'gia'; v.sel = false; v.msg = 'È già passato'; }
+    else if (S.impegni.some(x => norm(x.titolo) === norm(o.titolo) && x.data === o.data)) { v.stato = 'gia'; v.sel = false; v.msg = 'C\'è già nel calendario'; }
+    v.persone = (o.persone || []).map(n => personaDi(typeof n === 'string' ? { nome: n } : n)).filter(Boolean);
+    voci.push(v);
+  });
+
+  // 4. Numeri utili
+  (j.numeri || []).forEach(n => {
+    const v = { tipo: 'num', dati: n, sel: true, stato: 'nuovo', msg: '' };
+    const tel = telPulito(n.telefono || n.telefono2);
+    if (!n.nome || (!tel && !n.email)) { v.stato = 'problema'; v.sel = false; v.msg = 'Manca il nome o il numero'; }
+    else if (S.numeri.some(x => (tel && (telPulito(x.telefono) === tel || telPulito(x.telefono2) === tel)) || norm(x.nome) === norm(n.nome))) { v.stato = 'gia'; v.sel = false; v.msg = 'C\'è già in rubrica'; }
+    voci.push(v);
+  });
+
+  if (!voci.length) return toast('Il file è vuoto: la chat non ha trovato niente da importare 🤷', 5000);
+  S_IMP.dati = { fonte, voci, creato: j.creato || '' };
+  render();
+}
+
+function anteprimaImport() {
+  const { fonte, voci } = S_IMP.dati;
+  const conta = voci.filter(v => v.sel).length;
+  const etichetta = { nuovo: ['b-green', 'Nuovo'], aggiorna: ['b-orange', 'Aggiorna'], gia: ['b-grey', 'C\'è già'], problema: ['b-red', 'Da sistemare'], fatto: ['b-teal', '✅ Importato'], errore: ['b-red', 'Errore'] };
+  const titoli = { persona: '👨‍👩‍👦 Persone', doc: '📄 Documenti', imp: '📌 Impegni', num: '📞 Numeri utili' };
+  let h = `<div class="card"><b>📂 ${esc(fonte.nome || 'Cartella')}</b>
+    <div class="mini">Ho trovato ${voci.length} cose. Togli la spunta a quelle che non vuoi, poi premi “Importa”.</div></div>`;
+  ['persona', 'doc', 'imp', 'num'].forEach(tipo => {
+    const lista = voci.map((v, i) => [v, i]).filter(([v]) => v.tipo === tipo);
+    if (!lista.length) return;
+    h += `<div class="card"><div class="sp-rep">${titoli[tipo]} <span class="mini">${lista.length}</span></div>`;
+    lista.forEach(([v, i]) => {
+      const d = v.dati, et = etichetta[v.stato] || etichetta.nuovo;
+      let titolo = '', sotto = [];
+      if (tipo === 'persona') { titolo = [d.nome, d.cognome].filter(Boolean).join(' '); sotto = [d.relazione, d.codiceFiscale, d.nascita ? '🎂 ' + fData(d.nascita) : '']; }
+      if (tipo === 'doc') {
+        titolo = tipoInfo(d.tipo || '')[1] + ' ' + (d.tipo || 'Documento') + (v.persona ? ' di ' + v.persona.nome : '');
+        sotto = [d.numero ? 'n. ' + d.numero : '', d.scadenza ? 'scade il ' + fData(d.scadenza) : 'non scade', d.file ? '📎 ' + d.file : ''];
+      }
+      if (tipo === 'imp') { titolo = catInfo(d.categoria)[1] + ' ' + d.titolo; sotto = [d.data ? fData(d.data, true) : '', d.oraInizio, (v.persone || []).map(p => p.nome).join(', '), d.luogo]; }
+      if (tipo === 'num') { titolo = catNum(d.categoria)[1] + ' ' + d.nome; sotto = [d.telefono, d.telefono2, d.email]; }
+      const bloccato = v.stato === 'problema' || v.stato === 'fatto';
+      h += `<div class="sp-row ${v.sel ? '' : 'spento'}" onclick="${bloccato ? '' : `S_IMP.dati.voci[${i}].sel=!S_IMP.dati.voci[${i}].sel;render()`}">
+        <span class="check ${v.sel ? 'on' : ''}">${v.sel ? '✓' : ''}</span>
+        <div class="txt"><div class="t">${esc(titolo)} <span class="badge ${et[0]}">${et[1]}</span>${d.affidabilita && d.affidabilita !== 'alta' ? ` <span class="badge b-yellow">lettura ${esc(d.affidabilita)}</span>` : ''}</div>
+          <div class="s">${esc(sotto.filter(Boolean).join(' · '))}</div>
+          ${v.msg ? `<div class="s">${esc(v.msg)}</div>` : ''}
+          ${d.dubbi ? `<div class="s dubbio">🤔 ${esc(d.dubbi)}</div>` : ''}
+          ${d.note && tipo === 'doc' ? `<div class="s">📝 ${esc(d.note)}</div>` : ''}</div>
+      </div>`;
+    });
+    h += '</div>';
+  });
+  const finito = voci.every(v => !v.sel);
+  h += `<div class="azioni" style="position:sticky;bottom:calc(84px + env(safe-area-inset-bottom));z-index:5">
+    <button class="btn sec" onclick="S_IMP.dati=null;render()">${finito ? '👍 Chiudi' : 'Annulla'}</button>
+    ${conta ? `<button class="btn" id="impBtn" onclick="eseguiImport()">📥 Importa (${conta})</button>` : ''}
+  </div>`;
+  return h;
+}
+
+async function eseguiImport() {
+  const { fonte, voci } = S_IMP.dati;
+  const btn = $('#impBtn'); if (btn) { btn.disabled = true; }
+  const daFare = voci.filter(v => v.sel);
+  let fatti = 0, errori = 0;
+  const passo = () => { const b = $('#impBtn'); if (b) b.textContent = '⏳ ' + fatti + ' di ' + daFare.length + '…'; };
+  passo();
+  // Le persone nuove per prime: servono a documenti e impegni
+  const idDi = {};
+  for (const v of daFare.filter(v => v.tipo === 'persona')) {
+    try {
+      const d = v.dati, i = S.persone.length;
+      const r = await api('salva', 'Persone', {
+        nome: d.nome || d.cognome, cognome: d.cognome || '', relazione: d.relazione || '', nascita: d.nascita || '',
+        codiceFiscale: String(d.codiceFiscale || '').toUpperCase(), altriNomi: d.altriNomi || '',
+        colore: COLORI[i % COLORI.length], emoji: EMOJI[i % EMOJI.length], note: '', email: ''
+      });
+      S.persone.push(r.obj); idDi[v.persona.id] = r.obj; v.stato = 'fatto';
+    } catch (e) { v.stato = 'errore'; v.msg = e.message || String(e); errori++; }
+    v.sel = false; fatti++; passo();
+  }
+  const vera = p => !p ? null : p._nuova ? idDi[p.id] || null : p;
+  for (const v of daFare.filter(v => v.tipo !== 'persona')) {
+    try {
+      const d = v.dati;
+      if (v.tipo === 'doc') {
+        const p = vera(v.persona);
+        if (!p) throw new Error('la persona non è stata creata');
+        const doc = v.esistente ? Object.assign({}, v.esistente) : { files: '[]', preavviso: '' };
+        doc.personaId = p.id; doc.tipo = d.tipo;
+        if (d.numero) doc.numero = d.numero;
+        if (d.rilascio) doc.rilascio = d.rilascio;
+        if (d.scadenza) doc.scadenza = d.scadenza;
+        if (!doc.preavviso && doc.preavviso !== 0) { const t = TIPI_DOC.find(x => x[0] === d.tipo); doc.preavviso = String(t ? t[2] : (+S.imp.preavviso || 30)); }
+        const note = [d.note, d.dubbi ? 'Da controllare: ' + d.dubbi : ''].filter(Boolean).join(' · ');
+        if (note) doc.note = v.esistente && doc.note ? doc.note + ' · ' + note : note;
+        const files = filesDi(doc);
+        if (v.file) {
+          let copia;
+          if (fonte.fonte === 'drive') copia = await api('copiaFileDrive', v.file.id, p.nome);
+          else { const pr = await preparaFile(v.file); copia = await api('caricaFile', p.nome, d.tipo + ' - ' + p.nome + ' - ' + pr.nome, pr.mime, pr.base64); }
+          copia.origine = v.origine; files.push(copia);
+        }
+        doc.files = JSON.stringify(files);
+        const r = await api('salva', 'Documenti', doc);
+        const k = S.documenti.findIndex(x => x.id === r.obj.id);
+        if (k >= 0) S.documenti[k] = r.obj; else S.documenti.push(r.obj);
+        if (r.avviso) v.msg = r.avviso;
+      }
+      if (v.tipo === 'imp') {
+        const o = {
+          titolo: d.titolo, categoria: catInfo(d.categoria)[0], data: d.data, oraInizio: d.oraInizio || '', oraFine: d.oraFine || '',
+          tuttoIlGiorno: d.oraInizio ? 'no' : 'si', persone: (v.persone || []).map(vera).filter(Boolean).map(p => p.id).join(','),
+          luogo: d.luogo || '', note: [d.note, d.dubbi ? 'Da controllare: ' + d.dubbi : ''].filter(Boolean).join(' · '),
+          ripeti: 'no', ripetiFino: '', promemoria: '1440'
+        };
+        const r = await api('salva', 'Impegni', o); S.impegni.push(r.obj);
+      }
+      if (v.tipo === 'num') {
+        const r = await api('salva', 'Numeri', {
+          nome: d.nome, categoria: catNum(d.categoria)[0], telefono: d.telefono || '', telefono2: d.telefono2 || '',
+          email: d.email || '', indirizzo: d.indirizzo || '', note: d.note || '', preferito: ''
+        });
+        S.numeri.push(r.obj);
+      }
+      v.stato = 'fatto';
+    } catch (e) { v.stato = 'errore'; v.msg = 'Non riuscito: ' + (e.message || e); errori++; }
+    v.sel = false; fatti++; passo();
+  }
+  render();
+  toast(errori ? 'Fatto, ma ' + errori + ' non sono riuscit' + (errori === 1 ? 'o' : 'i') + ': li vedi in rosso' : 'Importato tutto! 🎉 Scadenze messe nel calendario 📅', 6000);
+}
+
+/* =========================================================
    Lista della spesa (condivisa)
    ========================================================= */
 // Ordine dei reparti come si gira in un supermercato
@@ -1625,6 +1906,7 @@ function sceltaNuovo() {
     <div class="row" onclick="apriProgetto()"><div class="ico" style="background:var(--warn-soft)">🎯</div><div class="txt"><div class="t">Un progetto</div><div class="s">Viaggi, lavori in casa, acquisti, sogni…</div></div></div>
     <div class="row" onclick="apriNumero()"><div class="ico" style="background:var(--accent-soft)">📞</div><div class="txt"><div class="t">Un numero utile</div><div class="s">Medico, idraulico, scuola…</div></div></div>
     <div class="row" onclick="apriPersona()"><div class="ico" style="background:var(--primary-soft)">👤</div><div class="txt"><div class="t">Una persona</div><div class="s">Qualcuno della famiglia</div></div></div>
+    <div class="row" onclick="vai('importa')"><div class="ico" style="background:var(--accent-soft)">📥</div><div class="txt"><div class="t">Importa da cartella</div><div class="s">I dati preparati dalla chat di Claude</div></div></div>
     <div class="row" onclick="vai('cerca')"><div class="ico" style="background:var(--ok-soft)">🔍</div><div class="txt"><div class="t">Cerca in una cartella</div><div class="s">Trovo io i documenti della famiglia</div></div></div>`);
 }
 function menuAltro() {
@@ -1632,6 +1914,7 @@ function menuAltro() {
     <div class="row" onclick="vai('prog')"><div class="ico" style="background:var(--warn-soft)">🎯</div><div class="txt"><div class="t">Progetti futuri</div><div class="s">${S.progetti.filter(p => p.stato !== 'fatto').length} da fare</div></div></div>
     <div class="row" onclick="vai('num')"><div class="ico" style="background:var(--accent-soft)">📞</div><div class="txt"><div class="t">Numeri utili</div><div class="s">${S.numeri.length} contatti + emergenze</div></div></div>
     <div class="row" onclick="vai('fam')"><div class="ico" style="background:var(--primary-soft)">👨‍👩‍👦</div><div class="txt"><div class="t">Famiglia</div><div class="s">Persone e condivisione dell'app</div></div></div>
+    <div class="row" onclick="vai('importa')"><div class="ico" style="background:var(--accent-soft)">📥</div><div class="txt"><div class="t">Importa da cartella</div><div class="s">I dati letti dalla chat di Claude (importazione-casa.json)</div></div></div>
     <div class="row" onclick="vai('cerca')"><div class="ico" style="background:var(--ok-soft)">🔍</div><div class="txt"><div class="t">Cerca documenti in una cartella</div><div class="s">Drive, PC o chiavetta (solo lettura)</div></div></div>
     <div class="row" onclick="apriImpostazioni()"><div class="ico" style="background:var(--line)">⚙️</div><div class="txt"><div class="t">Impostazioni</div><div class="s">Calendario, promemoria, il tuo nome</div></div></div>`);
 }
@@ -1708,6 +1991,12 @@ const PROVA = (() => {
       { id: 'x5', nome: 'menu pizzeria.pdf', mime: 'application/pdf', url: '#', percorso: '', modificato: '2025-01-01' },
       { id: 'x6', nome: 'film.mkv', mime: 'video/x-matroska', url: '#', percorso: '', modificato: '2025-01-01' }
     ] }),
+    leggiImportazioneDrive: () => ({ nomeCartella: 'Documenti di prova', troncato: false,
+      files: [{ id: 'x1', nome: 'tessera anna.pdf', mime: 'application/pdf', url: '#', percorso: 'anna' }],
+      testo: JSON.stringify({ formato: 'casa-santoro-importazione', versione: 1,
+        persone: [{ nome: 'Anna', cognome: 'Bianchi', relazione: 'Moglie' }, { nome: 'Nonna', cognome: 'Pina', relazione: 'Nonna' }],
+        documenti: [{ file: 'anna/tessera anna.pdf', persona: { nome: 'Anna', cognome: 'Bianchi' }, tipo: 'Tessera sanitaria', numero: '8038', scadenza: '2031-01-31', note: '', dubbi: '', affidabilita: 'alta' }],
+        impegni: [], numeri: [{ nome: 'Farmacia centrale', categoria: 'Medici e salute', telefono: '089 111222' }] }) }),
     ignoraFile: (id, nome) => { db.Ignorati.push({ id, nome }); salvaDb(); return true; },
     ripristinaIgnorati: () => { db.Ignorati = []; salvaDb(); return true; }
   };

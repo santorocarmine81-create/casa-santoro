@@ -428,16 +428,38 @@ function condividiCalendario_(idCal, email, aggiungi) {
 function scansionaCartella(link) {
   controllo_();
   var testo = String(link || '').trim();
-  var m = testo.match(/folders\/([\w-]{10,})/) || testo.match(/[?&]id=([\w-]{10,})/) || testo.match(/^([\w-]{10,})$/);
-  if (!m) throw new Error('Non riconosco il link della cartella. Aprila in Drive e copia l\'indirizzo dalla barra in alto.');
-  var radice;
-  try { radice = DriveApp.getFolderById(m[1]); radice.getName(); }
-  catch (e) { throw new Error('Non riesco ad aprire quella cartella: controlla il link.'); }
+  var radice = apriCartellaDaLink_(testo);
 
   var imp = leggiImpostazioni_();
   imp.cartellaScansione = testo;
   props_().setProperty('impostazioni', JSON.stringify(imp));
 
+  return elencaFile_(radice);
+}
+
+function apriCartellaDaLink_(testo) {
+  testo = String(testo || '').trim();
+  var m = testo.match(/folders\/([\w-]{10,})/) || testo.match(/[?&]id=([\w-]{10,})/) || testo.match(/^([\w-]{10,})$/);
+  if (!m) throw new Error('Non riconosco il link della cartella. Aprila in Drive e copia l\'indirizzo dalla barra in alto.');
+  try { var radice = DriveApp.getFolderById(m[1]); radice.getName(); return radice; }
+  catch (e) { throw new Error('Non riesco ad aprire quella cartella: controlla il link.'); }
+}
+
+/**
+ * Importa da una cartella Drive: legge il file importazione-casa.json preparato dalla chat di Claude
+ * e l'elenco dei file (per copiarli dopo). SOLO LETTURA: non cambia niente nella cartella.
+ */
+function leggiImportazioneDrive(link) {
+  controllo_();
+  var radice = apriCartellaDaLink_(link);
+  var it = radice.getFilesByName('importazione-casa.json');
+  if (!it.hasNext()) throw new Error('In quella cartella non c\'è il file importazione-casa.json: fallo preparare prima alla chat di Claude.');
+  var testo = it.next().getBlob().getDataAsString('UTF-8');
+  var elenco = elencaFile_(radice);
+  return { nomeCartella: elenco.nomeCartella, testo: testo, files: elenco.files, troncato: elenco.troncato };
+}
+
+function elencaFile_(radice) {
   var idApp = props_().getProperty('cartellaId');
   var inizio = Date.now(), MAX = 3000;
   var tz = Session.getScriptTimeZone();

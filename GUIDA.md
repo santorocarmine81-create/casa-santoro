@@ -92,6 +92,20 @@ Per toglierle l'accesso: stessa scheda → **Togli l'accesso** (i dati restano).
 > il calendario "🏠 Casa Santoro/Longobardi" da Google Calendar → Impostazioni del calendario →
 > **Condividi con persone specifiche** → la sua email → **Apportare modifiche agli eventi**.
 
+## Importare i documenti con la chat di Claude
+
+Come per il gestionale Santalucia, c'è una chat apposita che legge i documenti al posto tuo.
+
+1. Nell'app Claude sul PC apri una **nuova sessione** (Code) e come cartella scegli
+   `G:\Documents\pers\claude\casa-santoro\chat-importazione`. Chiamala "Lettore documenti di casa".
+2. Scrivile la cartella da leggere, per esempio: *"Leggi i documenti in G:\Documents\pers\passaporto"*.
+   Ti chiederà chi c'è in famiglia, leggerà PDF e foto e alla fine creerà nella cartella **un solo file**:
+   `importazione-casa.json`. Non può cancellare né modificare nient'altro: è bloccata.
+3. Nell'app, da Chrome sul PC: **☰ Altro → 📥 Importa da cartella → Scegli la cartella** e scegli la stessa cartella.
+4. Controlla l'anteprima (togli la spunta a quello che non vuoi) e premi **Importa**.
+   L'app crea le persone nuove, aggiorna i documenti che hanno una scadenza più recente, salta i doppioni,
+   copia i file nella sua cartella e mette le scadenze nel calendario.
+
 ## Il calendario
 
 - Scadenze, impegni e obiettivi dei progetti finiscono nel calendario **🏠 Casa Santoro/Longobardi**,

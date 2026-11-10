@@ -1,0 +1,88 @@
+{
+  "permissions": {
+    "disableBypassPermissionsMode": "disable",
+    "disableAutoMode": "disable",
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Skill",
+      "ToolSearch",
+      "mcp__ccd_turn",
+      "mcp__ccd_view"
+    ],
+    "deny": [
+      "Bash",
+      "PowerShell",
+      "NotebookEdit",
+      "Agent",
+      "SendMessage",
+      "ListAgents",
+      "CronList",
+      "CronDelete",
+      "ScheduleWakeup",
+      "WebFetch",
+      "WebSearch",
+      "CronCreate",
+      "RemoteTrigger",
+      "EnterWorktree",
+      "ExitWorktree",
+      "DesignSync",
+      "Artifact",
+      "mcp__terminal",
+      "mcp__ccd_session",
+      "mcp__ccd_session_mgmt",
+      "mcp__ccd_host",
+      "mcp__ccd_directory",
+      "mcp__ccd_settings",
+      "mcp__ccd_connectors",
+      "mcp__ccd_sidebar",
+      "mcp__ccd_pr",
+      "mcp__ccd_window",
+      "mcp__mcp-registry",
+      "mcp__scheduled-tasks",
+      "mcp__claude-in-chrome",
+      "mcp__Claude_Browser",
+      "mcp__claude-artifacts",
+      "mcp__1a59c906-04da-521d-bda7-7f71b9f9e01c",
+      "mcp__9f103714-d9df-4d4d-a7bd-fa31752ef887",
+      "mcp__computer-use",
+      "mcp__remote-devices",
+      "ArtifactComments",
+      "ArtifactData",
+      "SendToProject",
+      "SendToProjectContext",
+      "FetchInboxMessage",
+      "Monitor",
+      "TaskStop",
+      "PushNotification"
+    ]
+  },
+  "autoMemoryEnabled": false,
+  "disableClaudeAiConnectors": true,
+  "disableSkillShellExecution": true,
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+            "args": [
+              "-NoProfile",
+              "-NonInteractive",
+              "-ExecutionPolicy",
+              "Bypass",
+              "-File",
+              "G:\\Documents\\pers\\claude\\casa-santoro\\chat-importazione\\.claude\\hooks\\solo-importazione.ps1"
+            ],
+            "timeout": 30,
+            "onFailure": "block",
+            "statusMessage": "Controllo del file da scrivere"
+          }
+        ]
+      }
+    ]
+  }
+}
