@@ -264,11 +264,24 @@ function salva(tipo, obj) {
   try {
     if (tipo === 'Persone') {
       var prima = leggi_('Persone').filter(function (x) { return x.id === obj.id; })[0];
-      // l'accesso all'app si cambia solo con condividiCon / togliCondivisione
+      // l'accesso all'app si da' con condividiCon e si toglie con togliCondivisione;
+      // se si cambia l'email di chi ha gia' l'accesso, l'accesso si sposta da solo sulla nuova email
       obj.accesso = prima ? prima.accesso : '';
-      if (prima && prima.accesso === 'si' && String(prima.email).toLowerCase() !== String(obj.email).toLowerCase()) {
-        obj.email = prima.email;
-        avviso = 'L\'email non l\'ho cambiata perché l\'app è condivisa con quell\'indirizzo: togli prima la condivisione.';
+      obj.email = String(obj.email || '').trim().toLowerCase();
+      var vecchia = prima ? String(prima.email || '').trim().toLowerCase() : '';
+      if (prima && prima.accesso === 'si' && vecchia !== obj.email) {
+        if (!sonoProprietario_()) {
+          obj.email = vecchia;
+          avviso = 'L\'email non l\'ho cambiata: solo ' + proprietario_() + ' può spostare l\'accesso all\'app.';
+        } else if (!obj.email) {
+          togliAccesso_(vecchia);
+          obj.accesso = '';
+          avviso = 'Hai tolto l\'email: ho tolto anche l\'accesso all\'app a ' + vecchia + '.';
+        } else {
+          var avvisiNuova = daiAccesso_(obj.email); // se l'email nuova non va bene si ferma qui e non tocca niente
+          togliAccesso_(vecchia);
+          avviso = 'Ho spostato l\'accesso all\'app da ' + vecchia + ' a ' + obj.email + ' ✅' + (avvisiNuova.length ? ' ' + avvisiNuova.join(' ') : '');
+        }
       }
       scrivi_(tipo, obj);
       if (prima && prima.nome !== obj.nome) aggiornaEventiPersona_(obj.id); // aggiorno i titoli nel calendario
@@ -375,12 +388,12 @@ function cestinaFile(fileId) {
  * le da' accesso al foglio dei dati, alla cartella dei documenti e al calendario di casa.
  * Tocca SOLO i permessi della cartella e del foglio dell'app, nient'altro.
  */
-function condividiCon(personaId) {
-  if (!sonoProprietario_()) throw new Error('Solo ' + proprietario_() + ' può condividere l\'app.');
-  var p = leggi_('Persone').filter(function (x) { return x.id === personaId; })[0];
-  if (!p) throw new Error('Persona non trovata');
-  var email = String(p.email || '').trim().toLowerCase();
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error('Scrivi prima la sua email Google nella scheda e salva.');
+function emailValida_(email) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(email || '')); }
+
+/** Da' a un'email l'accesso a cartella, foglio e calendario di casa. Restituisce gli eventuali avvisi. */
+function daiAccesso_(email) {
+  email = String(email || '').trim().toLowerCase();
+  if (!emailValida_(email)) throw new Error('Scrivi prima la sua email Google nella scheda e salva.');
   if (email === utente_()) throw new Error('Questa è la tua email: l\'app è già tua 🙂');
   var avvisi = [];
   cartella_().addEditor(email);
@@ -392,6 +405,25 @@ function condividiCon(personaId) {
   } else {
     avvisi.push('Gli eventi vanno nel tuo calendario ' + (imp.calendario === 'principale' ? 'principale' : 'scelto') + ': se vuoi che li veda anche lei, condividilo tu da Google Calendar.');
   }
+  return avvisi;
+}
+
+/** Toglie a un'email l'accesso a cartella, foglio e calendario di casa (i dati restano). */
+function togliAccesso_(email) {
+  email = String(email || '').trim().toLowerCase();
+  if (!email) return;
+  try { cartella_().removeEditor(email); } catch (e) {}
+  try { DriveApp.getFileById(props_().getProperty('foglioId')).removeEditor(email); } catch (e) {}
+  var idCal = props_().getProperty('calendarioId');
+  if (idCal) condividiCalendario_(idCal, email, false);
+}
+
+function condividiCon(personaId) {
+  if (!sonoProprietario_()) throw new Error('Solo ' + proprietario_() + ' può condividere l\'app.');
+  var p = leggi_('Persone').filter(function (x) { return x.id === personaId; })[0];
+  if (!p) throw new Error('Persona non trovata');
+  var avvisi = daiAccesso_(p.email);
+  p.email = String(p.email).trim().toLowerCase();
   p.accesso = 'si';
   scrivi_('Persone', p);
   return { obj: p, avvisi: avvisi };
@@ -401,11 +433,7 @@ function togliCondivisione(personaId) {
   if (!sonoProprietario_()) throw new Error('Solo ' + proprietario_() + ' può farlo.');
   var p = leggi_('Persone').filter(function (x) { return x.id === personaId; })[0];
   if (!p) throw new Error('Persona non trovata');
-  var email = String(p.email || '').trim().toLowerCase();
-  try { cartella_().removeEditor(email); } catch (e) {}
-  try { DriveApp.getFileById(props_().getProperty('foglioId')).removeEditor(email); } catch (e) {}
-  var idCal = props_().getProperty('calendarioId');
-  if (idCal) condividiCalendario_(idCal, email, false);
+  togliAccesso_(p.email);
   p.accesso = '';
   scrivi_('Persone', p);
   return { obj: p, avvisi: [] };

@@ -1,0 +1,22 @@
+# Su GitHub (archivio PUBBLICO) vanno SOLO i file dell'app.
+# Tutto il resto (cartelle con documenti, bollette, PDF, foto, importazione-casa.json...) resta solo sul PC.
+/*
+!/.gitignore
+!/apps-script/
+!/icons/
+!/test/
+!/chat-importazione/
+!/index.html
+!/manifest.json
+!/sw.js
+!/README.md
+!/GUIDA.md
+
+# Anche dentro le cartelle dell'app: mai documenti personali
+*.pdf
+*.jpg
+*.jpeg
+*.webp
+*.heic
+importazione-casa.json
+importazione.json

@@ -1004,7 +1004,7 @@ function apriPersona(id) {
     <input class="in" id="pCF" value="${esc(p.codiceFiscale)}" placeholder="Facoltativo" style="text-transform:uppercase">
     <p class="mini">🔍 Nomi, soprannomi e codice fiscale mi servono per riconoscere i suoi documenti quando cerco in una cartella.</p>
     <label class="f">Email Google (per usare l'app insieme a te)</label>
-    <input class="in" id="pEmail" type="email" value="${esc(p.email)}" placeholder="Es. nome@gmail.com" ${p.accesso === 'si' ? 'readonly' : ''}>
+    <input class="in" id="pEmail" type="email" value="${esc(p.email)}" placeholder="Es. nome@gmail.com" ${p.accesso === 'si' && !S.io.proprietario ? 'readonly' : ''}>
     ${id ? boxCondivisione(p) : '<p class="mini">🤝 Dopo aver salvato potrai condividere l\'app con questa persona.</p>'}
     <label class="f">Faccina</label>
     <div class="pick" id="pEmoji">${EMOJI.map(e => `<button type="button" class="${e === p.emoji ? 'on' : ''}" data-id="${e}" onclick="scegliUno(this)">${e}</button>`).join('')}</div>
@@ -1044,7 +1044,8 @@ function salvaPersona(id) {
 function boxCondivisione(p) {
   if (p.accesso === 'si') {
     return `<div class="share on">✅ <b>${esc(p.nome)}</b> usa l'app con <b>${esc(p.email)}</b>: vede e modifica tutto insieme a te.
-      ${S.io.proprietario ? `<button class="btn ghost small" onclick="togliAccesso('${p.id}')">Togli l'accesso</button>` : ''}</div>`;
+      ${S.io.proprietario ? `<span class="mini">Email sbagliata? Correggila qui sopra e premi Salva: sposto io l'accesso sulla nuova.</span>
+      <button class="btn ghost small" onclick="togliAccesso('${p.id}')">Togli l'accesso</button>` : ''}</div>`;
   }
   if (!S.io.proprietario) return '';
   return `<div class="share">🤝 Vuoi usare l'app insieme a ${esc(p.nome)}? Scrivi la sua email Google qui sopra e premi:

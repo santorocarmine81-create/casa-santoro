@@ -382,6 +382,40 @@ fetch('../apps-script/Codice.gs').then(r => r.text()).then(codice => {
     UTENTE = 'carmine@example.com'; FOGLIO_CACHE_ = null;
     vero(getTutto().spesa.length === 2, 'dati persi');
   });
+  prova('Cambio email a chi ha già l\'accesso: l\'accesso passa alla nuova email', () => {
+    condividiCon(persone.moglie.id);
+    const p = leggi_('Persone').find(x => x.id === persone.moglie.id);
+    const r = salva('Persone', Object.assign({}, p, { email: 'Enza@Example.com ' }));
+    vero(/spostato/.test(r.avviso), 'avviso: ' + r.avviso);
+    vero(r.obj.email === 'enza@example.com' && r.obj.accesso === 'si', JSON.stringify(r.obj));
+    vero(DRIVE[idCartella].editor.includes('enza@example.com') && !DRIVE[idCartella].editor.includes('moglie@example.com'), 'cartella: ' + DRIVE[idCartella].editor);
+    vero(DRIVE[idFoglio].editor.includes('enza@example.com') && !DRIVE[idFoglio].editor.includes('moglie@example.com'), 'foglio');
+    vero(CAL[idCal].condiviso.includes('enza@example.com') && !CAL[idCal].condiviso.includes('moglie@example.com'), 'calendario');
+    UTENTE = 'enza@example.com'; FOGLIO_CACHE_ = null;
+    vero(doGet().contenuto === 'APP:Index', 'la nuova email non entra');
+    UTENTE = 'moglie@example.com'; FOGLIO_CACHE_ = null;
+    vero(doGet().contenuto.includes('non ti conosco'), 'la vecchia email entra ancora');
+    UTENTE = 'carmine@example.com'; FOGLIO_CACHE_ = null;
+  });
+  prova('Email nuova non valida: errore e accesso lasciato com\'era', () => {
+    const p = leggi_('Persone').find(x => x.id === persone.moglie.id);
+    lancia(() => salva('Persone', Object.assign({}, p, { email: 'enza-senza-chiocciola' })), 'email');
+    const dopo = leggi_('Persone').find(x => x.id === persone.moglie.id);
+    vero(dopo.email === 'enza@example.com' && dopo.accesso === 'si', JSON.stringify(dopo));
+    vero(DRIVE[idCartella].editor.includes('enza@example.com'), 'accesso perso');
+  });
+  prova('Solo il proprietario può spostare l\'accesso cambiando email', () => {
+    UTENTE = 'enza@example.com'; FOGLIO_CACHE_ = null;
+    const p = leggi_('Persone').find(x => x.id === persone.moglie.id);
+    const r = salva('Persone', Object.assign({}, p, { email: 'altra@example.com' }));
+    vero(r.obj.email === 'enza@example.com', 'email cambiata da chi non è il proprietario');
+    UTENTE = 'carmine@example.com'; FOGLIO_CACHE_ = null;
+  });
+  prova('Tolgo l\'email a chi ha l\'accesso: l\'accesso viene tolto', () => {
+    const p = leggi_('Persone').find(x => x.id === persone.moglie.id);
+    const r = salva('Persone', Object.assign({}, p, { email: '' }));
+    vero(r.obj.accesso === '' && !DRIVE[idCartella].editor.includes('enza@example.com'), JSON.stringify(r.obj));
+  });
   prova('Cambio calendario (principale) e tutto viene spostato', () => {
     const r = salvaImpostazioni({ calendario: 'principale' });
     vero(r.spostati > 0, 'spostati: ' + r.spostati);
