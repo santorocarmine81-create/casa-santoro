@@ -1751,14 +1751,15 @@ function indovinaCatPag(t) {
 }
 
 function statoPagamento(p) {
-  if (p.pagata === 'si') return { cls: 'b-green', txt: 'Pagata' + (p.dataPagamento ? ' il ' + fData(p.dataPagamento) : '') };
-  if (!p.scadenza) return { cls: 'b-grey', txt: 'Senza scadenza' };
+  if (p.pagata === 'si') return { cls: 'b-green', txt: '✅ Pagata' + (p.dataPagamento ? ' il ' + fData(p.dataPagamento) : '') };
+  const DA = '⏳ Da pagare';
+  if (!p.scadenza) return { cls: 'b-grey', txt: DA };
   const g = giorniA(p.scadenza);
-  if (g < 0) return { cls: 'b-red', txt: 'Scaduta da ' + (-g) + ' gg' };
-  if (g === 0) return { cls: 'b-red', txt: 'Scade oggi!' };
-  if (g <= 7) return { cls: 'b-orange', txt: g === 1 ? 'Domani' : 'Tra ' + g + ' gg' };
-  if (g <= 30) return { cls: 'b-yellow', txt: 'Tra ' + g + ' gg' };
-  return { cls: 'b-grey', txt: fData(p.scadenza) };
+  if (g < 0) return { cls: 'b-red', txt: DA + ' · scaduta da ' + (-g) + ' gg' };
+  if (g === 0) return { cls: 'b-red', txt: DA + ' · scade oggi!' };
+  if (g <= 7) return { cls: 'b-orange', txt: DA + ' · ' + (g === 1 ? 'domani' : 'tra ' + g + ' gg') };
+  if (g <= 30) return { cls: 'b-yellow', txt: DA + ' · tra ' + g + ' gg' };
+  return { cls: 'b-grey', txt: DA + ' entro il ' + fData(p.scadenza) };
 }
 
 function rigaPagamento(p) {
@@ -1767,9 +1768,9 @@ function rigaPagamento(p) {
     <div class="ico" style="background:${c[2]}22">${c[1]}</div>
     <div class="txt"><div class="t">${esc(p.titolo)}</div>
       <div class="s">${esc([p.periodo, chi ? chi.nome : '', p.metodo].filter(Boolean).join(' · ') || c[0])}${nf ? ' · 📎 ' + nf : ''}</div>
-      <div style="margin-top:4px"><span class="badge ${st.cls}">${st.txt}</span></div></div>
+      <div style="margin-top:4px"><span class="badge ${st.cls}" style="white-space:normal;display:inline-block;max-width:100%">${st.txt}</span></div></div>
     <div class="dx"><div class="importo">${numero(p.importo) ? euro(p.importo) : ''}</div>
-      ${p.pagata !== 'si' ? `<button class="btn teal small" onclick="event.stopPropagation();segnaPagata('${p.id}')">✅ Pagata</button>` : ''}</div>
+      ${p.pagata !== 'si' ? `<button class="btn sec small" style="border:2px solid #12b5a5;color:#0b8a7e;background:#fff;white-space:nowrap" onclick="event.stopPropagation();segnaPagata('${p.id}')" title="Tocca quando l'hai pagata">Segna pagata</button>` : ''}</div>
   </div>`;
 }
 
