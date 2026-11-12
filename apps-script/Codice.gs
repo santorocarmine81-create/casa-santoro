@@ -108,7 +108,31 @@ function controllo_() {
 
 /* ---------------- Pagina ---------------- */
 
+/**
+ * Google oggi fa scegliere i permessi uno per uno: se qualcuno ne lascia uno senza spunta (es. Fogli),
+ * l'app gira ma non puo' aprire i dati. Restituisce il link per ridarli tutti, oppure '' se e' tutto a posto.
+ */
+function permessiMancanti_() {
+  try {
+    var info = ScriptApp.getAuthorizationInfo(ScriptApp.AuthMode.FULL);
+    if (info.getAuthorizationStatus() === ScriptApp.AuthorizationStatus.REQUIRED) return info.getAuthorizationUrl() || '#';
+  } catch (e) {}
+  return '';
+}
+
 function doGet() {
+  var link = permessiMancanti_();
+  if (link) {
+    return HtmlService.createHtmlOutput(
+      '<div style="font-family:system-ui,sans-serif;text-align:center;padding:40px 16px;color:#2b2633;background:#fff6ee;min-height:100vh;box-sizing:border-box">' +
+      '<div style="font-size:56px">🏠🔑</div><h2>Manca un permesso</h2>' +
+      '<p>Sei entrato come <b>' + (utente_() || 'questo account') + '</b>, ma a Google manca il permesso di usare qualcosa che serve all\'app (di solito Fogli, Drive o Calendar).</p>' +
+      '<p><a href="' + link + '" target="_top" style="display:inline-block;background:#ff6b57;color:#fff;padding:14px 22px;border-radius:14px;font-weight:800;text-decoration:none">🔑 Dai i permessi</a></p>' +
+      '<p>Nella pagina di Google <b>spunta TUTTE le caselle</b> (oppure "Seleziona tutto") e premi <b>Continua</b>. Poi riapri l\'app.</p></div>')
+      .setTitle(NOME_APP)
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
   if (!puoEntrare_()) {
     var io = utente_() || 'questo account';
     return HtmlService.createHtmlOutput(
@@ -135,11 +159,17 @@ var FOGLIO_CACHE_ = null;
 function foglio_() {
   if (FOGLIO_CACHE_) return FOGLIO_CACHE_;
   var id = props_().getProperty('foglioId');
-  var ss = null;
-  if (id) { try { ss = SpreadsheetApp.openById(id); } catch (e) { ss = null; } }
+  var ss = null, motivo = '';
+  if (id) { try { ss = SpreadsheetApp.openById(id); } catch (e) { ss = null; motivo = e && e.message ? e.message : String(e); } }
   if (!ss) {
     // Solo il proprietario puo' creare un foglio nuovo: chi e' ospite non deve mai "sostituire" i dati
-    if (id && !sonoProprietario_()) throw new Error(NON_CONDIVISO);
+    if (id && !sonoProprietario_()) {
+      // "Specified permissions are not sufficient... Required permissions: .../auth/spreadsheets" = permesso non dato
+      if (/not sufficient|required permissions|non sono sufficienti|autorizzazioni richieste|auth\/spreadsheets/i.test(motivo)) {
+        throw new Error('A Google manca il permesso di aprire Fogli per questo account. Chiudi e riapri l\'app: comparirà il tasto "Dai i permessi"; spunta tutte le caselle. (Motivo: ' + motivo + ')');
+      }
+      throw new Error(NON_CONDIVISO + (motivo ? ' (Motivo: ' + motivo + ')' : ''));
+    }
     ss = SpreadsheetApp.create(NOME_APP + ' - dati (non modificare a mano)');
     props_().setProperty('foglioId', ss.getId());
     if (!proprietario_()) props_().setProperty('proprietario', utente_());

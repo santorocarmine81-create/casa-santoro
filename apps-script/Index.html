@@ -155,6 +155,9 @@ ol.passi li{margin-bottom:6px}
 .tabella td.data{font-weight:800;color:var(--primary);white-space:nowrap}
 .tabella td.data .anno{display:block;font-size:12px;color:var(--muted);font-weight:700}
 .tabella td.cosa{font-weight:700}
+.tabella tbody tr.google td{color:#5f6368}
+.tabella tbody tr.google td.data{color:#5f6368}
+.tabella tbody tr.google td.cosa::before{content:'🗓️ '}
 .tabella td.note{color:var(--muted)}
 @media (max-width:700px){
   .tabella{background:transparent;box-shadow:none;border-radius:0}
@@ -410,6 +413,7 @@ function render() {
   if (S.vista === 'importa') h += vistaImporta();
   m.innerHTML = h;
   if (S.vista === "cal" && S.calModo !== "elenco") caricaGoogleMese();
+  else if (S.vista === "cal") caricaGoogleElenco();
 }
 
 /* =========================================================
@@ -618,8 +622,32 @@ function righeElenco() {
       righe.push({ data: s, cat: '🎂 Compleanno', cosa: 'Compleanno di ' + p.nome, chi: p.nome, rif: 'Fa ' + (+s.slice(0, 4) - +p.nascita.slice(0, 4)) + ' anni', note: '-', click: `apriPersona('${p.id}')` });
     });
   }
+  // impegni del Google Calendar personale (solo lettura): non sono legati a una persona di casa
+  if (S.imp.mostraGoogle && !E.chi && (!E.tipo || E.tipo === 'google')) {
+    (S.google[chiaveElenco()] || []).forEach(e => {
+      const s = e.data < oggiS ? oggiS : e.data;
+      if ((e.fine || e.data) < oggiS || s > fine) return;
+      righe.push({
+        data: s, cat: '🗓️ ' + (e.calendario || 'Google Calendar'), cosa: e.titolo, chi: '-',
+        rif: [e.ora ? e.ora + (e.oraFine ? '–' + e.oraFine : '') : 'Tutto il giorno', e.luogo].filter(Boolean).join(' · '),
+        note: 'Dal tuo Google Calendar', click: "toast('Questo impegno è nel tuo Google Calendar: lo cambi da lì 🙂')", google: true
+      });
+    });
+  }
   righe.sort((a, b) => a.data < b.data ? -1 : a.data > b.data ? 1 : 0);
   return righe;
+}
+/* Il Google Calendar lo leggo al massimo per un anno, se no diventa lento */
+function giorniGoogleElenco() { return Math.min(365, S.elenco.periodo === 'tutto' ? 365 : +S.elenco.periodo); }
+function chiaveElenco() { return 'elenco-' + giorniGoogleElenco(); }
+function caricaGoogleElenco() {
+  const k = chiaveElenco();
+  if (!S.imp.mostraGoogle || S.elenco.chi || (S.elenco.tipo && S.elenco.tipo !== 'google') || S.googleCarico[k]) return;
+  S.googleCarico[k] = 'carico';
+  api('eventiGoogle', oggi(), addGiorni(oggi(), giorniGoogleElenco())).then(ev => {
+    S.google[k] = ev; S.googleCarico[k] = 'ok';
+    if (S.vista === 'cal' && S.calModo === 'elenco' && chiaveElenco() === k) render();
+  }).catch(e => { S.googleCarico[k] = 'errore'; errore(e); });
 }
 function vistaElenco() {
   const E = S.elenco;
@@ -643,8 +671,12 @@ function vistaElenco() {
       <option value="imp" ${sel(E.tipo, 'imp')}>Solo impegni</option>
       <option value="pag" ${sel(E.tipo, 'pag')}>Solo bollette e pagamenti</option>
       <option value="comp" ${sel(E.tipo, 'comp')}>Solo compleanni</option>
+      <option value="google" ${sel(E.tipo, 'google')}>Solo il mio Google Calendar</option>
     </select>
   </div>
+  <label class="toggle" style="margin-bottom:10px"><input type="checkbox" ${S.imp.mostraGoogle ? 'checked' : ''} onchange="toggleGoogle(this.checked)"> Metti nell'elenco anche il mio Google Calendar ${S.googleCarico[chiaveElenco()] === 'carico' ? '⏳' : ''}</label>
+  ${S.imp.mostraGoogle && E.chi ? '<p class="mini" style="margin:-4px 0 8px">🗓️ Gli impegni del tuo Google Calendar li vedi scegliendo "Tutta la famiglia".</p>' : ''}
+  ${!S.imp.mostraGoogle && E.tipo === 'google' ? '<p class="mini" style="margin:-4px 0 8px">Spunta la casella qui sopra per vedere il tuo Google Calendar.</p>' : ''}
   <div class="legenda"><b>Legenda:</b>
     <span><i style="background:var(--danger)"></i>Scaduto</span>
     <span><i style="background:#f97316"></i>Entro 15 gg</span>
@@ -655,7 +687,7 @@ function vistaElenco() {
   h += `<p class="mini" style="margin:0 0 8px">${righe.length} ${righe.length === 1 ? 'cosa' : 'cose'} · gli scaduti li vedi sempre in cima, così non ti scappano</p>
   <div class="tabella"><table>
     <thead><tr><th>Data</th><th>Categoria</th><th>Cosa</th><th>Chi</th><th>Riferimento</th><th>Giorni</th><th>Note</th></tr></thead>
-    <tbody>${righe.map(r => `<tr onclick="${r.click}">
+    <tbody>${righe.map(r => `<tr onclick="${r.click}"${r.google ? ' class="google"' : ''}>
       <td class="data">${fData(r.data, true)}<span class="anno">${r.data.slice(0, 4)}</span></td>
       <td data-l="Categoria">${esc(r.cat)}</td>
       <td class="cosa">${esc(r.cosa)}</td>

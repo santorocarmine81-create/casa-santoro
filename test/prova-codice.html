@@ -47,7 +47,13 @@ const Utilities = {
   formatDate: (d, tz, f) => f === 'HH:mm' ? pad(d.getHours()) + ':' + pad(d.getMinutes()) : d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate())
 };
 const TRIGGERS = {};
+const SENZA_PERMESSI = []; // utenti che hanno lasciato senza spunta qualche permesso
 const ScriptApp = {
+  AuthMode: { FULL: 'FULL' }, AuthorizationStatus: { REQUIRED: 'REQUIRED', NOT_REQUIRED: 'NOT_REQUIRED' },
+  getAuthorizationInfo: () => ({
+    getAuthorizationStatus: () => SENZA_PERMESSI.includes(UTENTE) ? 'REQUIRED' : 'NOT_REQUIRED',
+    getAuthorizationUrl: () => 'https://script.google.com/macros/d/x/authorize'
+  }),
   getProjectTriggers: () => (TRIGGERS[UTENTE] || []),
   deleteTrigger: t => { TRIGGERS[UTENTE] = (TRIGGERS[UTENTE] || []).filter(x => x !== t); },
   newTrigger: fn => { const ch = { timeBased: () => ch, everyDays: () => ch, atHour: () => ch, create: () => { (TRIGGERS[UTENTE] = TRIGGERS[UTENTE] || []).push({ getHandlerFunction: () => fn }); } }; return ch; }
@@ -122,7 +128,10 @@ function vistaSS(ss) {
 }
 const SpreadsheetApp = {
   create: n => vistaSS(foglioFinto(n)),
-  openById: id => { const el = DRIVE[id]; if (!el || !accessibile(el)) throw new Error('Not found'); return vistaSS(el); }
+  openById: id => {
+    if (SENZA_PERMESSI.includes(UTENTE)) throw new Error('Specified permissions are not sufficient to call SpreadsheetApp.openById. Required permissions: https://www.googleapis.com/auth/spreadsheets');
+    const el = DRIVE[id]; if (!el || !accessibile(el)) throw new Error('Not found'); return vistaSS(el);
+  }
 };
 
 // ---- Calendario ----
@@ -433,6 +442,19 @@ fetch('../apps-script/Codice.gs').then(r => r.text()).then(codice => {
     vero(!getTutto().riparati.length, 'ripara ogni volta anche se non serve');
     UTENTE = 'moglie@example.com'; FOGLIO_CACHE_ = null;
     vero(doGet().contenuto === 'APP:Index' && getTutto().persone.length === 2, 'la moglie non entra ancora');
+    UTENTE = 'carmine@example.com'; FOGLIO_CACHE_ = null;
+  });
+  prova('Permesso Fogli non spuntato: la pagina dice di dare i permessi, non "chiedi di condividere"', () => {
+    SENZA_PERMESSI.push('moglie@example.com');
+    UTENTE = 'moglie@example.com'; FOGLIO_CACHE_ = null;
+    const pag = doGet().contenuto;
+    vero(pag.includes('Manca un permesso') && pag.includes('/authorize'), pag.slice(0, 120));
+    let msg = '';
+    try { getTutto(); } catch (e) { msg = e.message; }
+    vero(/permesso/.test(msg) && !/chiedi di condividere/.test(msg), msg);
+    SENZA_PERMESSI.length = 0;
+    FOGLIO_CACHE_ = null;
+    vero(doGet().contenuto === 'APP:Index', 'dopo aver dato i permessi non entra');
     UTENTE = 'carmine@example.com'; FOGLIO_CACHE_ = null;
   });
   prova('Gmail: punti, maiuscole e googlemail.com sono la stessa casella', () => {
