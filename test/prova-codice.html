@@ -72,6 +72,7 @@ function vista(el) {
     getParents: () => iter(el.genitori.map(id => vista(DRIVE[id]))),
     addEditor: e => { if (el.proprietario !== UTENTE) throw new Error('solo il proprietario'); el.editor.push(e); },
     removeEditor: e => { el.editor = el.editor.filter(x => x !== e); },
+    getEditors: () => el.editor.map(e => ({ getEmail: () => e })),
     setTrashed: b => { if (el.proprietario !== UTENTE) throw new Error('Access denied'); el.cestino = b; },
     moveTo: c => { el.genitori = [c.getId()]; },
     makeCopy: (nome, cart) => { const c = elemento('file', nome, cart.getId()); c.mime = el.mime; return vista(c); },
@@ -415,6 +416,45 @@ fetch('../apps-script/Codice.gs').then(r => r.text()).then(codice => {
     const p = leggi_('Persone').find(x => x.id === persone.moglie.id);
     const r = salva('Persone', Object.assign({}, p, { email: '' }));
     vero(r.obj.accesso === '' && !DRIVE[idCartella].editor.includes('enza@example.com'), JSON.stringify(r.obj));
+  });
+  prova('Accesso segnato ma foglio mai condiviso davvero: quando apre Carmine si ripara da solo', () => {
+    const p = leggi_('Persone').find(x => x.id === persone.moglie.id);
+    salva('Persone', Object.assign({}, p, { email: 'moglie@example.com' }));
+    condividiCon(persone.moglie.id);
+    // come se Google non avesse mai condiviso foglio e cartella
+    DRIVE[idFoglio].editor = DRIVE[idFoglio].editor.filter(e => e !== 'moglie@example.com');
+    DRIVE[idCartella].editor = DRIVE[idCartella].editor.filter(e => e !== 'moglie@example.com');
+    UTENTE = 'moglie@example.com'; FOGLIO_CACHE_ = null;
+    lancia(() => getTutto());
+    UTENTE = 'carmine@example.com'; FOGLIO_CACHE_ = null;
+    const t = getTutto();
+    vero(t.riparati.length === 1 && /Enza/.test(t.riparati[0]), 'riparati: ' + JSON.stringify(t.riparati));
+    vero(DRIVE[idFoglio].editor.includes('moglie@example.com') && DRIVE[idCartella].editor.includes('moglie@example.com'), 'non ripara');
+    vero(!getTutto().riparati.length, 'ripara ogni volta anche se non serve');
+    UTENTE = 'moglie@example.com'; FOGLIO_CACHE_ = null;
+    vero(doGet().contenuto === 'APP:Index' && getTutto().persone.length === 2, 'la moglie non entra ancora');
+    UTENTE = 'carmine@example.com'; FOGLIO_CACHE_ = null;
+  });
+  prova('Gmail: punti, maiuscole e googlemail.com sono la stessa casella', () => {
+    vero(stessaEmail_('vincenzina.longobardi@gmail.com', 'VincenzinaLongobardi@gmail.com'), 'punti/maiuscole');
+    vero(stessaEmail_('vincenzina.longobardi@gmail.com', 'vincenzinalongobardi+casa@googlemail.com'), 'googlemail/+');
+    vero(!stessaEmail_('mario.rossi@example.com', 'mariorossi@example.com'), 'fuori da Gmail i punti contano');
+    vero(!stessaEmail_('', ''), 'vuote');
+  });
+  prova('Gmail: entra anche se Google scrive l\'email senza i punti', () => {
+    segnaOspite_('vincenzina.longobardi@gmail.com', true);
+    UTENTE = 'vincenzinalongobardi@gmail.com'; FOGLIO_CACHE_ = null;
+    vero(doGet().contenuto === 'APP:Index', 'non entra');
+    UTENTE = 'carmine@example.com'; FOGLIO_CACHE_ = null;
+    segnaOspite_('vincenzina.longobardi@gmail.com', false);
+    UTENTE = 'vincenzinalongobardi@gmail.com'; FOGLIO_CACHE_ = null;
+    vero(doGet().contenuto.includes('non ti conosco'), 'entra dopo che l\'ho tolta');
+    UTENTE = 'carmine@example.com'; FOGLIO_CACHE_ = null;
+  });
+  prova('Documento di casa (di nessuna persona): si salva e va nel calendario', () => {
+    const r = salva('Documenti', { personaId: '', tipo: 'Manutenzione caldaia', scadenza: '2027-03-01', preavviso: '30', files: '[]' });
+    vero(r.obj.id && r.obj.eventi, 'niente eventi: ' + JSON.stringify(r.obj));
+    vero(getTutto().documenti.some(d => d.tipo === 'Manutenzione caldaia' && !d.personaId), 'non salvato');
   });
   prova('Cambio calendario (principale) e tutto viene spostato', () => {
     const r = salvaImpostazioni({ calendario: 'principale' });

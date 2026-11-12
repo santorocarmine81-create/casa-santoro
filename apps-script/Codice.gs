@@ -45,9 +45,62 @@ function sonoProprietario_() { var p = proprietario_(); return !p || p === utent
 function puoEntrare_() {
   if (sonoProprietario_()) return true;
   var io = utente_();
+  if (!io) return false;
+  // 1) elenco degli account di casa salvato a parte (non serve poter aprire il foglio)
+  if (ospiti_().some(function (e) { return stessaEmail_(e, io); })) return true;
+  // 2) come prima: cerco nel foglio delle persone
   try {
-    return leggi_('Persone').some(function (p) { return p.accesso === 'si' && String(p.email).toLowerCase() === io; });
+    return leggi_('Persone').some(function (p) { return p.accesso === 'si' && stessaEmail_(p.email, io); });
   } catch (e) { return false; }
+}
+
+/** Gmail ignora punti, maiuscole e "+qualcosa": due modi di scrivere la stessa casella risultano uguali. */
+function emailNorm_(email) {
+  var e = String(email || '').trim().toLowerCase();
+  var parti = e.split('@');
+  if (parti.length !== 2) return e;
+  var nome = parti[0], dom = parti[1];
+  if (dom === 'googlemail.com') dom = 'gmail.com';
+  if (dom === 'gmail.com') nome = nome.split('+')[0].replace(/\./g, '');
+  return nome + '@' + dom;
+}
+function stessaEmail_(a, b) { return !!a && !!b && emailNorm_(a) === emailNorm_(b); }
+
+/** Account di casa (oltre al proprietario), salvati nelle proprieta' dello script. */
+function ospiti_() {
+  try { return JSON.parse(props_().getProperty('ospiti') || '[]'); } catch (e) { return []; }
+}
+function segnaOspite_(email, dentro) {
+  var lista = ospiti_().filter(function (e) { return !stessaEmail_(e, email); });
+  if (dentro && email) lista.push(String(email).trim().toLowerCase());
+  props_().setProperty('ospiti', JSON.stringify(lista));
+}
+
+/**
+ * Solo per il proprietario: controlla che chi ha l'accesso abbia davvero foglio e cartella condivisi
+ * (es. la prima volta l'email era sbagliata) e, se manca qualcosa, rifa' la condivisione.
+ */
+function riparaCondivisioni_() {
+  if (!sonoProprietario_() || !proprietario_()) return [];
+  var riparati = [];
+  try {
+    var conAccesso = leggi_('Persone').filter(function (p) { return p.accesso === 'si' && emailValida_(p.email); });
+    var emailOspiti = conAccesso.map(function (p) { return String(p.email).trim().toLowerCase(); });
+    if (JSON.stringify(emailOspiti) !== JSON.stringify(ospiti_())) props_().setProperty('ospiti', JSON.stringify(emailOspiti));
+    if (!conAccesso.length) return [];
+    var foglio = DriveApp.getFileById(props_().getProperty('foglioId'));
+    var cart = cartella_();
+    var edFoglio = foglio.getEditors().map(function (u) { return u.getEmail(); });
+    var edCart = cart.getEditors().map(function (u) { return u.getEmail(); });
+    var ha = function (lista, email) { return lista.some(function (e) { return stessaEmail_(e, email); }); };
+    conAccesso.forEach(function (p) {
+      var fatto = false;
+      if (!ha(edFoglio, p.email)) { try { foglio.addEditor(p.email); fatto = true; } catch (e) {} }
+      if (!ha(edCart, p.email)) { try { cart.addEditor(p.email); fatto = true; } catch (e) {} }
+      if (fatto) riparati.push(p.nome + ' (' + p.email + ')');
+    });
+  } catch (e) {}
+  return riparati;
 }
 function controllo_() {
   if (!puoEntrare_()) throw new Error('Questo account (' + utente_() + ') non e\' tra quelli di casa. Chiedi di condividere l\'app con te.');
@@ -217,7 +270,7 @@ function nomeUtente_() {
   var n = PropertiesService.getUserProperties().getProperty('nome');
   if (n) return n;
   var io = utente_();
-  var p = leggi_('Persone').filter(function (x) { return x.email && String(x.email).toLowerCase() === io; })[0];
+  var p = leggi_('Persone').filter(function (x) { return x.email && stessaEmail_(x.email, io); })[0];
   if (p) return p.nome;
   return sonoProprietario_() ? 'Carmine' : '';
 }
@@ -230,7 +283,9 @@ function emailAttiva_() {
 
 function getTutto() {
   controllo_();
+  var riparati = riparaCondivisioni_();
   return {
+    riparati: riparati,
     persone: leggi_('Persone'),
     documenti: leggi_('Documenti'),
     impegni: leggi_('Impegni'),
@@ -394,8 +449,9 @@ function emailValida_(email) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(e
 function daiAccesso_(email) {
   email = String(email || '').trim().toLowerCase();
   if (!emailValida_(email)) throw new Error('Scrivi prima la sua email Google nella scheda e salva.');
-  if (email === utente_()) throw new Error('Questa è la tua email: l\'app è già tua 🙂');
+  if (stessaEmail_(email, utente_())) throw new Error('Questa è la tua email: l\'app è già tua 🙂');
   var avvisi = [];
+  segnaOspite_(email, true);
   cartella_().addEditor(email);
   DriveApp.getFileById(props_().getProperty('foglioId')).addEditor(email);
   var imp = leggiImpostazioni_();
@@ -412,6 +468,7 @@ function daiAccesso_(email) {
 function togliAccesso_(email) {
   email = String(email || '').trim().toLowerCase();
   if (!email) return;
+  segnaOspite_(email, false);
   try { cartella_().removeEditor(email); } catch (e) {}
   try { DriveApp.getFileById(props_().getProperty('foglioId')).removeEditor(email); } catch (e) {}
   var idCal = props_().getProperty('calendarioId');

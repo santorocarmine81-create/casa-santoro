@@ -290,6 +290,7 @@ function api(nome, ...args) {
 /* =========================================================
    Dati fissi
    ========================================================= */
+const CASA = '_casa'; /* filtro "documenti di casa" (di nessuna persona) */
 const TIPI_DOC = [
   ["Carta d'identità", '🪪', 60], ['Passaporto', '🛂', 90], ['Patente', '🚗', 60],
   ['Tessera sanitaria', '💳', 30], ['Codice fiscale', '🧾', 0], ['Assicurazione auto', '🚙', 30],
@@ -298,7 +299,10 @@ const TIPI_DOC = [
   ['Esami / referti', '🩺', 0], ['Ricetta medica', '💊', 0], ['Piano terapeutico', '📋', 30],
   ['Invalidità / 104', '♿', 60], ['ISEE', '📊', 30], ['Busta paga / CU', '💼', 0],
   ['Dichiarazione dei redditi', '🧮', 0], ['Contratto', '✍️', 30], ['Bolletta', '💡', 0],
-  ['Titolo di studio', '🎓', 0], ['Abbonamento', '🎫', 15], ['Altro', '📄', 30]
+  ['Titolo di studio', '🎓', 0], ['Abbonamento', '🎫', 15],
+  ['Contratto di affitto', '🔑', 60], ['Atto della casa', '🏡', 0], ['Mutuo', '🏦', 30],
+  ['Condominio', '🏢', 15], ['IMU / catasto', '📐', 30], ['Manutenzione caldaia', '🔥', 30],
+  ['Garanzia', '🧾', 30], ['Libretto di istruzioni', '📖', 0], ['Altro', '📄', 30]
 ];
 const CATEGORIE = [
   ['Salute', '🩺', '#ef6f8f'], ['Scuola', '🏫', '#6b8cff'], ['Sport', '⚽', '#22b07d'], ['Festa', '🎉', '#ff9f1c'],
@@ -377,6 +381,7 @@ function carica() {
     S.imp = r.impostazioni; S.link = r.link || {}; S.io = r.io || S.io;
     $('#caricamento').style.display = 'none';
     render();
+    if (r.riparati && r.riparati.length) toast('🔧 Ho rifatto la condivisione con ' + r.riparati.join(', ') + ': ora può entrare 👍', 7000);
   });
 }
 function ricarica() { S.google = {}; S.googleCarico = {}; toast('Aggiorno… 🔄', 1200); carica().catch(errore); }
@@ -524,7 +529,7 @@ function rigaDoc(d) {
   const p = persona(d.personaId), st = statoScadenza(d), t = tipoInfo(d.tipo), nf = filesDi(d).length;
   return `<div class="row" onclick="apriDocumento('${d.id}')">
     <div class="ico" style="background:${(p && p.colore) || '#ff6b57'}22">${t[1]}</div>
-    <div class="txt"><div class="t">${esc(d.tipo)}</div><div class="s">${p ? esc(p.emoji || '') + ' ' + esc(p.nome) : 'Nessuno'}${nf ? ' · 📎 ' + nf : ''}${d.numero ? ' · n. ' + esc(d.numero) : ''}</div></div>
+    <div class="txt"><div class="t">${esc(d.tipo)}</div><div class="s">${p ? esc(p.emoji || '') + ' ' + esc(p.nome) : '🏠 Casa'}${nf ? ' · 📎 ' + nf : ''}${d.numero ? ' · n. ' + esc(d.numero) : ''}</div></div>
     <span class="badge ${st.cls}">${st.txt}</span>
   </div>`;
 }
@@ -717,12 +722,14 @@ function toggleGoogle(v) {
 function vistaDocumenti() {
   let h = `<div class="quick" style="margin-top:4px">
     <button class="btn" onclick="apriDocumento()">📄 Nuovo documento</button>
+    <button class="btn sec" onclick="apriDocumento(null, { personaId: '' });scegliFile('inFoto')">📷 Fotografa un documento di casa</button>
     <button class="btn teal" onclick="vai('importa')">📥 Importa da cartella</button>
     <button class="btn sec" onclick="vai('cerca')">🔍 Cerca documenti in una cartella</button>
   </div>
   <input class="search" placeholder="🔎 Cerca… (es. patente, Luca, assicurazione)" value="${esc(S.cerca)}" oninput="S.cerca=this.value;disegnaListaDoc()">
   <div class="chips">
     <button class="chip ${!S.filtroPersona ? 'on' : ''}" onclick="S.filtroPersona='';render()">Tutti</button>
+    <button class="chip ${S.filtroPersona === CASA ? 'on' : ''}" onclick="S.filtroPersona=CASA;render()">🏠 Casa</button>
     ${S.persone.map(p => `<button class="chip ${S.filtroPersona === p.id ? 'on' : ''}" onclick="S.filtroPersona='${p.id}';render()">${esc(p.emoji || '🙂')} ${esc(p.nome)}</button>`).join('')}
   </div><div id="listaDoc">${listaDoc()}</div>`;
   return h;
@@ -730,7 +737,7 @@ function vistaDocumenti() {
 function disegnaListaDoc() { $('#listaDoc').innerHTML = listaDoc(); }
 function listaDoc() {
   const q = S.cerca.toLowerCase().trim();
-  let docs = S.documenti.filter(d => !S.filtroPersona || d.personaId === S.filtroPersona);
+  let docs = S.documenti.filter(d => !S.filtroPersona || (S.filtroPersona === CASA ? !persona(d.personaId) : d.personaId === S.filtroPersona));
   if (q) docs = docs.filter(d => {
     const p = persona(d.personaId);
     return [d.tipo, d.numero, d.note, p && p.nome].join(' ').toLowerCase().includes(q);
@@ -741,7 +748,7 @@ function listaDoc() {
   return Object.keys(gruppi).map(pid => {
     const p = persona(pid);
     const lista = gruppi[pid].sort((a, b) => statoScadenza(b).liv - statoScadenza(a).liv || ((a.scadenza || '9') < (b.scadenza || '9') ? -1 : 1));
-    return `<div class="card"><h2 style="margin-top:0">${p ? esc(p.emoji || '🙂') + ' ' + esc(p.nome) : '🤷 Senza persona'}</h2>${lista.map(rigaDoc).join('')}</div>`;
+    return `<div class="card"><h2 style="margin-top:0">${p ? esc(p.emoji || '🙂') + ' ' + esc(p.nome) : '🏠 Casa'}</h2>${lista.map(rigaDoc).join('')}</div>`;
   }).join('');
 }
 
@@ -751,7 +758,7 @@ let F = null; // documento in modifica
 function apriDocumento(id, pre) {
   if (!S.persone.length) { toast('Prima aggiungi almeno una persona 🙂'); apriPersona(); return; }
   const d = id ? Object.assign({}, S.documenti.find(x => x.id === id)) : Object.assign({
-    personaId: S.filtroPersona || (S.persone[0] && S.persone[0].id), tipo: '', numero: '', rilascio: '', scadenza: '', preavviso: '', note: '', files: '[]'
+    personaId: S.filtroPersona === CASA ? '' : (S.filtroPersona || (S.persone[0] && S.persone[0].id)), tipo: '', numero: '', rilascio: '', scadenza: '', preavviso: '', note: '', files: '[]'
   }, pre || {});
   F = { d, files: filesDi(d), nuovi: (pre && pre._nuovi) || [], preavvisoToccato: !!id };
   if (pre && pre._files) F.files = pre._files;
@@ -760,7 +767,7 @@ function apriDocumento(id, pre) {
   const preVal = d.preavviso !== '' ? +d.preavviso : tInfo ? tInfo[2] : (+S.imp.preavviso || 30);
   apriFinestra(`<h3>${id ? '✏️ Modifica documento' : '📄 Nuovo documento'}<button class="icon-btn x" onclick="annullaDocumento()">✕</button></h3>
     <label class="f">Di chi è?</label>
-    <div class="pick" id="fPersona">${S.persone.map(p => `<button type="button" class="${p.id === d.personaId ? 'on' : ''}" data-id="${p.id}" onclick="scegliUno(this)">${esc(p.emoji || '🙂')} ${esc(p.nome)}</button>`).join('')}</div>
+    <div class="pick" id="fPersona"><button type="button" class="${!persona(d.personaId) ? 'on' : ''}" data-id="" onclick="scegliUno(this)">🏠 Casa</button>${S.persone.map(p => `<button type="button" class="${p.id === d.personaId ? 'on' : ''}" data-id="${p.id}" onclick="scegliUno(this)">${esc(p.emoji || '🙂')} ${esc(p.nome)}</button>`).join('')}</div>
     <label class="f">Che documento è?</label>
     <input class="in" id="fTipo" list="tipiDoc" value="${esc(d.tipo)}" placeholder="Es. Carta d'identità" oninput="tipoCambiato()">
     <datalist id="tipiDoc">${TIPI_DOC.map(t => `<option value="${esc(t[0])}">`).join('')}</datalist>
@@ -803,6 +810,7 @@ function disegnaFiles() {
 function apriFile(i) { const f = F.files[i]; if (f.url && f.url !== '#') window.open(f.url, '_blank'); else toast('In modalità prova i file non si aprono 🙂'); }
 function togliFile(i) { F.files.splice(i, 1); disegnaFiles(); }
 function scegliFile(idInput) {
+  if (!F) return;
   const inp = document.getElementById(idInput);
   inp.value = '';
   inp.onchange = () => caricaFiles(Array.from(inp.files));
@@ -813,13 +821,13 @@ function personaScelta(boxId) { const b = document.querySelector('#' + boxId + '
 async function caricaFiles(lista) {
   const p = persona(personaScelta('fPersona'));
   const tipo = ($('#fTipo') && $('#fTipo').value.trim()) || 'Documento';
-  const cartella = F.cartella || (p ? p.nome : 'Senza nome');
+  const cartella = F.cartella || (p ? p.nome : 'Casa');
   for (const file of lista) {
     try {
       if (file.size > 30 * 1024 * 1024) { toast('“' + file.name + '” è troppo grande (max 30 MB)'); continue; }
       toast('Carico “' + file.name + '”… ⏳', 60000);
       const pronto = await preparaFile(file);
-      const nome = tipo + (p ? ' - ' + p.nome : '') + ' - ' + pronto.nome;
+      const nome = tipo + (p ? ' - ' + p.nome : F.cartella ? '' : ' - Casa') + ' - ' + pronto.nome;
       const r = await api('caricaFile', cartella, nome, pronto.mime, pronto.base64);
       F.files.push(r); F.nuovi.push(r.id);
       disegnaFiles(); toast('File caricato 👍');
@@ -860,7 +868,6 @@ function salvaDocumento() {
   const d = F.d;
   d.personaId = personaScelta('fPersona');
   d.tipo = $('#fTipo').value.trim();
-  if (!d.personaId) return toast('Scegli di chi è 🙂');
   if (!d.tipo) return toast('Scrivi che documento è 🙂');
   d.numero = $('#fNumero').value.trim();
   d.rilascio = $('#fRilascio').value;
@@ -1772,7 +1779,7 @@ function vistaPagamenti() {
   const scadute = aperti.filter(p => p.scadenza && giorniA(p.scadenza) < 0);
   const pagateAnno = S.pagamenti.filter(p => p.pagata === 'si' && (p.dataPagamento || p.scadenza || '').slice(0, 4) === anno);
   const tot = l => l.reduce((s, p) => s + numero(p.importo), 0);
-  let h = `<div class="calhead"><h2>💶 Bollette e pagamenti</h2><button class="btn small" onclick="apriPagamento()">➕ Nuova</button></div>
+  let h = `<div class="calhead"><h2>💶 Bollette e pagamenti</h2><div style="display:flex;gap:6px"><button class="btn sec small" onclick="apriPagamento();scegliFile('inFoto')" title="Fotografa una bolletta">📷</button><button class="btn small" onclick="apriPagamento()">➕ Nuova</button></div></div>
   <div class="riepilogo">
     <div class="card"><div class="mini">Da pagare</div><b>${euro(tot(aperti))}</b><div class="mini">${aperti.length} ${aperti.length === 1 ? 'pagamento' : 'pagamenti'}</div></div>
     <div class="card ${scadute.length ? 'rosso' : ''}"><div class="mini">Scadute</div><b>${euro(tot(scadute))}</b><div class="mini">${scadute.length ? scadute.length + ' da sistemare' : 'Nessuna 👍'}</div></div>
@@ -2005,6 +2012,8 @@ function chiedi(titolo, testo) {
 function sceltaNuovo() {
   apriFinestra(`<h3>Cosa aggiungiamo? ✨<button class="icon-btn x" onclick="chiudiFinestra()">✕</button></h3>
     <div class="row" onclick="apriDocumento()"><div class="ico" style="background:var(--primary-soft)">📄</div><div class="txt"><div class="t">Un documento</div><div class="s">Carta d'identità, patente, assicurazione…</div></div></div>
+    <div class="row" onclick="apriDocumento(null, { personaId: '' });scegliFile('inFoto')"><div class="ico" style="background:var(--primary-soft)">🏠</div><div class="txt"><div class="t">Fotografa un documento di casa</div><div class="s">Contratti, garanzie, condominio, caldaia…</div></div></div>
+    <div class="row" onclick="apriPagamento();scegliFile('inFoto')"><div class="ico" style="background:var(--warn-soft)">📷</div><div class="txt"><div class="t">Fotografa una bolletta</div><div class="s">Apro la fotocamera, poi completi importo e scadenza</div></div></div>
     <div class="row" onclick="apriImpegno(null, S.vista==='cal'?S.giornoSel:null)"><div class="ico" style="background:var(--accent-soft)">📌</div><div class="txt"><div class="t">Un impegno</div><div class="s">Visite, scuola, sport, feste…</div></div></div>
     <div class="row" onclick="vai('spesa');setTimeout(()=>$('#spNome')&&$('#spNome').focus(),50)"><div class="ico" style="background:var(--ok-soft)">🛒</div><div class="txt"><div class="t">Qualcosa da comprare</div><div class="s">Nella lista della spesa</div></div></div>
     <div class="row" onclick="apriPagamento()"><div class="ico" style="background:var(--warn-soft)">💶</div><div class="txt"><div class="t">Una bolletta o un pagamento</div><div class="s">Luce, gas, TARI, mutuo, asilo…</div></div></div>
