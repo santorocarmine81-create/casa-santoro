@@ -1332,6 +1332,10 @@ function vistaImporta() {
     <div class="azioni"><button class="btn" onclick="importaDaPC()">📂 Scegli la cartella (PC, disco o chiavetta)</button></div>
     <p class="mini">Si sceglie da Chrome sul computer. Chrome ti chiede se vuoi “caricare” i file: in realtà li leggo qui, e copio solo quelli che importi.</p>
     <div class="sep"></div>
+    <p style="margin:0"><b>📱 Dal telefono</b></p>
+    <p class="mini">Usa la pagina <b>“Lettore di casa”</b> su Claude: fotografi documenti e bollette, Claude li legge e ti fa scaricare un file <b>${NOME_IMPORT}</b> con le foto già dentro. Poi qui scegli quel file (di solito è nella cartella Download).</p>
+    <div class="azioni"><button class="btn teal" onclick="importaDaTelefono()">📱 Scegli il file dal telefono</button></div>
+    <div class="sep"></div>
     <label class="f">Oppure: cartella di Google Drive (incolla il link)</label>
     <div class="spadd"><input class="in" id="impLink" placeholder="drive.google.com/drive/folders/…"><button class="btn sec" id="impVai" onclick="importaDaDrive()">Leggi</button></div>
   </div>`;
@@ -1359,6 +1363,35 @@ function importaDaPC() {
     } catch (e) { errore(e); }
   };
   inp.click();
+}
+
+/* Dal telefono: un solo file JSON con dentro anche le foto e i PDF ("allegati": nome -> data:...;base64,...) */
+function importaDaTelefono() {
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = '.json,application/json,text/plain,application/octet-stream';
+  inp.onchange = async () => {
+    const f = inp.files && inp.files[0];
+    if (!f) return;
+    try { importaTestoTelefono(await f.text(), f.name); } catch (e) { errore(e); }
+  };
+  inp.click();
+}
+function importaTestoTelefono(testo, nomeFile) {
+  let j = null;
+  testo = String(testo);
+  if (testo.charCodeAt(0) === 0xFEFF) testo = testo.slice(1); // segno invisibile a inizio file
+  try { j = JSON.parse(testo); } catch (e) { return toast('Questo file non si legge: non è quello preparato da Claude 🤔', 6000); }
+  const allegati = (j && j.allegati) || {};
+  const mappa = {};
+  Object.keys(allegati).forEach(nome => {
+    const m = /^data:([^;,]+)?(;base64)?,(.*)$/.exec(String(allegati[nome] || ''));
+    if (!m) return;
+    const bin = atob(m[3]), arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    mappa[nome.toLowerCase()] = new File([arr], nome.split('/').pop(), { type: m[1] || 'application/octet-stream' });
+  });
+  preparaImport(testo, { fonte: 'telefono', nome: nomeFile, file: rel => mappa[String(rel || '').toLowerCase()] });
 }
 
 function importaDaDrive() {
@@ -1419,12 +1452,15 @@ function preparaImport(testo, fonte) {
   (j.documenti || []).forEach(d => {
     const v = { tipo: 'doc', dati: d, sel: true, stato: 'nuovo', msg: '', file: d.file ? fonte.file(d.file) : null };
     v.persona = personaDi(d.persona);
-    if (!v.persona) { v.stato = 'problema'; v.sel = false; v.msg = 'Non so di chi è: aggiungilo a mano'; voci.push(v); return; }
+    // senza persona (o con "casa": true) e' un documento di casa
+    v.casa = !v.persona && (d.casa === true || !d.persona || !(d.persona.nome || d.persona.cognome));
+    if (!v.persona && !v.casa) { v.stato = 'problema'; v.sel = false; v.msg = 'Non so di chi è: aggiungilo a mano'; voci.push(v); return; }
     if (!d.tipo) { v.stato = 'problema'; v.sel = false; v.msg = 'Tipo di documento mancante'; voci.push(v); return; }
     if (d.file && !v.file) v.msg = '⚠️ File “' + d.file + '” non trovato nella cartella: importo solo i dati';
     const origine = (fonte.fonte === 'drive' && v.file ? 'drive:' + v.file.id : 'pc:' + d.file);
     const t = norm(d.tipo);
-    const stessi = v.persona._nuova ? [] : S.documenti.filter(x => x.personaId === v.persona.id && norm(x.tipo) === t);
+    const stessi = v.casa ? S.documenti.filter(x => !persona(x.personaId) && norm(x.tipo) === t)
+      : v.persona._nuova ? [] : S.documenti.filter(x => x.personaId === v.persona.id && norm(x.tipo) === t);
     const giaFile = S.documenti.find(x => filesDi(x).some(f => f.origine === origine));
     let simile = null;
     if (giaFile) simile = giaFile;
@@ -1494,7 +1530,7 @@ function anteprimaImport() {
       let titolo = '', sotto = [];
       if (tipo === 'persona') { titolo = [d.nome, d.cognome].filter(Boolean).join(' '); sotto = [d.relazione, d.codiceFiscale, d.nascita ? '🎂 ' + fData(d.nascita) : '']; }
       if (tipo === 'doc') {
-        titolo = tipoInfo(d.tipo || '')[1] + ' ' + (d.tipo || 'Documento') + (v.persona ? ' di ' + v.persona.nome : '');
+        titolo = tipoInfo(d.tipo || '')[1] + ' ' + (d.tipo || 'Documento') + (v.persona ? ' di ' + v.persona.nome : v.casa ? ' (🏠 casa)' : '');
         sotto = [d.numero ? 'n. ' + d.numero : '', d.scadenza ? 'scade il ' + fData(d.scadenza) : 'non scade', d.file ? '📎 ' + d.file : ''];
       }
       if (tipo === 'imp') { titolo = catInfo(d.categoria)[1] + ' ' + d.titolo; sotto = [d.data ? fData(d.data, true) : '', d.oraInizio, (v.persone || []).map(p => p.nome).join(', '), d.luogo]; }
@@ -1548,10 +1584,11 @@ async function eseguiImport() {
     try {
       const d = v.dati;
       if (v.tipo === 'doc') {
-        const p = vera(v.persona);
-        if (!p) throw new Error('la persona non è stata creata');
+        const p = v.casa ? null : vera(v.persona);
+        if (!p && !v.casa) throw new Error('la persona non è stata creata');
+        const cartella = p ? p.nome : 'Casa';
         const doc = v.esistente ? Object.assign({}, v.esistente) : { files: '[]', preavviso: '' };
-        doc.personaId = p.id; doc.tipo = d.tipo;
+        doc.personaId = p ? p.id : ''; doc.tipo = d.tipo;
         if (d.numero) doc.numero = d.numero;
         if (d.rilascio) doc.rilascio = d.rilascio;
         if (d.scadenza) doc.scadenza = d.scadenza;
@@ -1561,8 +1598,8 @@ async function eseguiImport() {
         const files = filesDi(doc);
         if (v.file) {
           let copia;
-          if (fonte.fonte === 'drive') copia = await api('copiaFileDrive', v.file.id, p.nome);
-          else { const pr = await preparaFile(v.file); copia = await api('caricaFile', p.nome, d.tipo + ' - ' + p.nome + ' - ' + pr.nome, pr.mime, pr.base64); }
+          if (fonte.fonte === 'drive') copia = await api('copiaFileDrive', v.file.id, cartella);
+          else { const pr = await preparaFile(v.file); copia = await api('caricaFile', cartella, d.tipo + ' - ' + cartella + ' - ' + pr.nome, pr.mime, pr.base64); }
           copia.origine = v.origine; files.push(copia);
         }
         doc.files = JSON.stringify(files);
