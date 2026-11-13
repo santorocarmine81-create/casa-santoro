@@ -324,7 +324,7 @@ const GIORNI = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
 const S = {
   persone: [], documenti: [], impegni: [], spesa: [], ignorati: [], imp: {}, link: {},
   io: { email: '', nome: '', proprietario: true, emailAttiva: false },
-  pagamenti: [], filtroPag: 'da', catPag: '',
+  pagamenti: [], filtroPag: 'da', catPag: '', tipoPag: '',
   vista: 'home', mese: null, giornoSel: null, google: {}, googleCarico: {},
   filtroPersona: '', cerca: '', scan: null, pcFiles: {},
   calModo: (() => { try { return localStorage.getItem('casaSantoroModo') || 'mese'; } catch (e) { return 'mese'; } })(),
@@ -1786,11 +1786,17 @@ const CAT_PAG = [
   ['Rifiuti (TARI)', '🗑️', '#22b07d'], ['Tasse e IMU', '🏛️', '#5b6b7f'], ['Mutuo e prestiti', '🏦', '#a17cf0'],
   ['Affitto', '🔑', '#8d6e63'], ['Condominio', '🏢', '#7c9cbf'], ['Assicurazioni', '🛡️', '#12b5a5'], ['Auto e bollo', '🚗', '#5b6b7f'],
   ['Scuola e asilo', '🏫', '#ff9f1c'], ['Sport e corsi', '⚽', '#22b07d'], ['Abbonamenti', '🎫', '#ef6f8f'], ['Salute', '🩺', '#ef6f8f'],
+  ['Lavori e riparazioni', '🔧', '#d97706'], ['Professionisti', '💼', '#8d6e63'], ['Acquisti per la casa', '🛋️', '#a17cf0'],
+  ['Animali', '🐾', '#22b07d'], ['Regali e feste', '🎁', '#ef6f8f'],
   ['Altro', '💶', '#ff6b57']
 ];
+// Le bollette "classiche"; tutto il resto (elettricista, meccanico, dentista...) sono "altri pagamenti"
+const CAT_BOLLETTE = ['Luce', 'Gas', 'Acqua', 'Telefono e internet', 'Rifiuti (TARI)', 'Tasse e IMU', 'Mutuo e prestiti', 'Affitto', 'Condominio', 'Assicurazioni', 'Abbonamenti'];
+const eBolletta = p => CAT_BOLLETTE.includes(catPag(p.categoria || indovinaCatPag(p.titolo))[0]);
 const METODI = ['Domiciliazione', 'PagoPA', 'Bonifico', 'Carta', 'Bollettino', 'F24', 'Contanti', 'Altro'];
 const RIPETI_PAG = [['no', 'Una volta sola'], ['1', 'Ogni mese'], ['2', 'Ogni 2 mesi'], ['3', 'Ogni 3 mesi'], ['4', 'Ogni 4 mesi'], ['6', 'Ogni 6 mesi'], ['12', 'Ogni anno']];
 const SUGGERIMENTI_PAG = ['Luce', 'Gas', 'Acqua', 'Internet', 'Telefono', 'TARI', 'IMU', 'Mutuo', 'Condominio', 'Affitto', 'Bollo auto', 'Assicurazione auto', 'Canone RAI', 'Asilo nido', 'Mensa scolastica', 'Palestra', 'Prestito'];
+const SUGGERIMENTI_ALTRI = ['Elettricista', 'Idraulico', 'Muratore', 'Imbianchino', 'Manutenzione caldaia', 'Meccanico', 'Gommista', 'Commercialista', 'Avvocato', 'Dentista', 'Visita medica', 'Veterinario', 'Mobili', 'Elettrodomestico', 'Regalo'];
 const catPag = c => CAT_PAG.find(x => x[0] === c) || CAT_PAG[CAT_PAG.length - 1];
 const numero = n => { const v = parseFloat(String(n == null ? '' : n).replace(/\s/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.')); return isNaN(v) ? 0 : v; };
 const euro = n => numero(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: 'always' }) + ' €';
@@ -1808,7 +1814,15 @@ function barra(q, colore) {
 // Indovina la categoria dal nome (es. "Enel luce" -> Luce)
 function indovinaCatPag(t) {
   const n = norm(t);
-  const regole = [[/luce|enel|energia|elettric/, 'Luce'], [/\bgas\b|metano/, 'Gas'], [/acqua|idric|ausino|gori/, 'Acqua'],
+  const regole = [
+    [/elettricist|idraulic|muratore|imbianchin|pittore|falegnam|fabbro|giardinier|caldaia|manutenzion|riparazion|lavori|ristruttur|tecnico|spurgo|condizionator|antenn/, 'Lavori e riparazioni'],
+    [/meccanic|gommist|carrozz|tagliando|autolavagg/, 'Auto e bollo'],
+    [/commercialist|avvocat|notai|geometra|architett|ingegner|consulen|\bcaf\b|patronato|perizia/, 'Professionisti'],
+    [/veterinar|toelettat|crocchett|cane|gatto/, 'Animali'],
+    [/\bmobil|elettrodomestic|ikea|arredament|divano|frigorifer|lavatric|materass/, 'Acquisti per la casa'],
+    [/regalo|compleanno|comunione|cresima|battesimo|matrimonio|festa/, 'Regali e feste'],
+    [/dentist|ortodont|oculist|fisioterap|analisi/, 'Salute'],
+    [/luce|enel|energia|elettric/, 'Luce'], [/\bgas\b|metano/, 'Gas'], [/acqua|idric|ausino|gori/, 'Acqua'],
     [/tim|vodafone|wind|iliad|fastweb|internet|telefon|fibra/, 'Telefono e internet'], [/tari|rifiuti/, 'Rifiuti (TARI)'],
     [/imu|tasi|f24|tass|agenzia entrate|irpef|canone rai/, 'Tasse e IMU'], [/mutuo|prestito|finanziament|findomestic|rata/, 'Mutuo e prestiti'],
     [/affitto|pigione/, 'Affitto'], [/condomin/, 'Condominio'], [/assicuraz|polizza|unipol|allianz|generali/, 'Assicurazioni'],
@@ -1849,7 +1863,11 @@ function vistaPagamenti() {
   const scadute = aperti.filter(p => p.scadenza && giorniA(p.scadenza) < 0);
   const pagateAnno = S.pagamenti.filter(p => p.pagata === 'si' && (p.dataPagamento || p.scadenza || '').slice(0, 4) === anno);
   const tot = l => l.reduce((s, p) => s + numero(p.importo), 0);
-  let h = `<div class="calhead"><h2>💶 Bollette e pagamenti</h2><div style="display:flex;gap:6px"><button class="btn sec small" onclick="apriPagamento();scegliFile('inFoto')" title="Fotografa una bolletta">📷</button><button class="btn small" onclick="apriPagamento()">➕ Nuova</button></div></div>
+  let h = `<div class="calhead"><h2>💶 Bollette e pagamenti</h2><button class="btn sec small" onclick="apriPagamento();scegliFile('inFoto')" title="Fotografa una bolletta o una ricevuta">📷</button></div>
+  <div class="quick" style="margin-top:0">
+    <button class="btn" onclick="apriPagamento()">➕ Bolletta</button>
+    <button class="btn teal" onclick="apriPagamento(null, { _altro: true })">➕ Altro pagamento</button>
+  </div>
   <div class="riepilogo">
     <div class="card"><div class="mini">Da pagare</div><b>${euro(tot(aperti))}</b><div class="mini">${aperti.length} ${aperti.length === 1 ? 'pagamento' : 'pagamenti'}</div></div>
     <div class="card ${scadute.length ? 'rosso' : ''}"><div class="mini">Scadute</div><b>${euro(tot(scadute))}</b><div class="mini">${scadute.length ? scadute.length + ' da sistemare' : 'Nessuna 👍'}</div></div>
@@ -1857,14 +1875,17 @@ function vistaPagamenti() {
   </div>
   <div class="chips">
     ${[['da', '⏳ Da pagare'], ['pagate', '✅ Pagate'], ['tutte', 'Tutte']].map(([k, t]) => `<button class="chip ${S.filtroPag === k ? 'on' : ''}" onclick="S.filtroPag='${k}';render()">${t}</button>`).join('')}
+  </div>
+  <div class="chips">
+    ${[['', 'Tutti i tipi'], ['bollette', '🧾 Bollette'], ['altri', '🔧 Altri pagamenti']].map(([k, t]) => `<button class="chip ${S.tipoPag === k ? 'on' : ''}" onclick="S.tipoPag='${k}';render()">${t}</button>`).join('')}
     <select class="chip" onchange="S.catPag=this.value;render()"><option value="">Tutte le categorie</option>${CAT_PAG.map(c => `<option value="${c[0]}" ${S.catPag === c[0] ? 'selected' : ''}>${c[1]} ${c[0]}</option>`).join('')}</select>
   </div>`;
-  let lista = S.pagamenti.filter(p => (S.filtroPag === 'tutte' || (S.filtroPag === 'pagate' ? p.pagata === 'si' : p.pagata !== 'si')) && (!S.catPag || catPag(p.categoria)[0] === S.catPag));
+  let lista = S.pagamenti.filter(p => (S.filtroPag === 'tutte' || (S.filtroPag === 'pagate' ? p.pagata === 'si' : p.pagata !== 'si')) && (!S.catPag || catPag(p.categoria)[0] === S.catPag)
+    && (!S.tipoPag || (S.tipoPag === 'bollette') === eBolletta(p)));
   const verso = S.filtroPag === 'da' ? 1 : -1;
   lista.sort((a, b) => ((a.scadenza || '9999') < (b.scadenza || '9999') ? -1 : (a.scadenza || '9999') > (b.scadenza || '9999') ? 1 : 0) * verso);
   if (!lista.length) {
-    h += `<div class="card"><div class="empty"><b>${S.pagamenti.length ? '🎉' : '🧾'}</b>${S.pagamenti.length ? (S.filtroPag === 'da' ? 'Niente da pagare. Che sollievo!' : 'Niente qui.') : 'Nessuna bolletta ancora. Aggiungi luce, gas, acqua, mutuo… o importale da una cartella con la chat di Claude.'}</div>
-      <div class="azioni"><button class="btn" onclick="apriPagamento()">➕ Aggiungi una bolletta</button></div></div>`;
+    h += `<div class="card"><div class="empty"><b>${S.pagamenti.length ? '🎉' : '🧾'}</b>${S.pagamenti.length ? (S.filtroPag === 'da' ? 'Niente da pagare. Che sollievo!' : 'Niente qui.') : 'Ancora niente. Aggiungi bollette (luce, gas, acqua, mutuo…) e altri pagamenti (elettricista, meccanico, dentista…), oppure importali con il Lettore di casa.'}</div></div>`;
   } else {
     const gruppi = [];
     lista.forEach(p => {
@@ -1894,14 +1915,16 @@ function apriPagamento(id, pre) {
   const p = id ? Object.assign({}, S.pagamenti.find(x => x.id === id)) : Object.assign({
     titolo: '', categoria: '', importo: '', scadenza: '', pagata: '', dataPagamento: '', metodo: '', periodo: '', personaId: '', ripeti: 'no', files: '[]', note: ''
   }, pre || {});
+  const altro = id ? !eBolletta(p) : !!p._altro;
+  delete p._altro;
   F = { d: p, files: filesDi(p), nuovi: (pre && pre._nuovi) || [], cartella: 'Bollette e pagamenti', pagamento: true };
   if (pre && pre._files) F.files = pre._files;
-  apriFinestra(`<h3>${id ? '✏️ ' + esc(p.titolo) : '💶 Nuova bolletta o pagamento'}<button class="icon-btn x" onclick="annullaDocumento()">✕</button></h3>
-    <label class="f">Cosa si paga?</label>
-    <input class="in" id="fTipo" list="sugPag" value="${esc(p.titolo)}" placeholder="Es. Luce Enel, TARI, rata mutuo…" oninput="catAutomatica()">
-    <datalist id="sugPag">${SUGGERIMENTI_PAG.map(s => `<option value="${esc(s)}">`).join('')}</datalist>
+  apriFinestra(`<h3>${id ? '✏️ ' + esc(p.titolo) : altro ? '🔧 Nuovo pagamento' : '💶 Nuova bolletta'}<button class="icon-btn x" onclick="annullaDocumento()">✕</button></h3>
+    <label class="f">${altro ? 'Chi o cosa paghi?' : 'Cosa si paga?'}</label>
+    <input class="in" id="fTipo" list="sugPag" value="${esc(p.titolo)}" placeholder="${altro ? 'Es. Elettricista Rossi, meccanico, dentista…' : 'Es. Luce Enel, TARI, rata mutuo…'}" oninput="catAutomatica()">
+    <datalist id="sugPag">${(altro ? SUGGERIMENTI_ALTRI.concat(SUGGERIMENTI_PAG) : SUGGERIMENTI_PAG.concat(SUGGERIMENTI_ALTRI)).map(s => `<option value="${esc(s)}">`).join('')}</datalist>
     <label class="f">Categoria</label>
-    <div class="pick" id="gCatPag">${CAT_PAG.map(c => `<button type="button" class="${c[0] === catPag(p.categoria)[0] && p.categoria ? 'on' : ''}" data-id="${c[0]}" onclick="scegliUno(this);F.catToccata=true">${c[1]} ${c[0]}</button>`).join('')}</div>
+    <div class="pick" id="gCatPag">${(altro ? CAT_PAG.filter(c => !CAT_BOLLETTE.includes(c[0])).concat(CAT_PAG.filter(c => CAT_BOLLETTE.includes(c[0]))) : CAT_PAG).map(c => `<button type="button" class="${c[0] === catPag(p.categoria)[0] && p.categoria ? 'on' : ''}" data-id="${c[0]}" onclick="scegliUno(this);F.catToccata=true">${c[1]} ${c[0]}</button>`).join('')}</div>
     <div class="two">
       <div><label class="f">Importo (€)</label><input class="in" id="gImporto" inputmode="decimal" value="${esc(p.importo)}" placeholder="Es. 85,40"></div>
       <div><label class="f">Scade il</label><input class="in" type="date" id="gScadenza" value="${esc(p.scadenza)}"></div>
@@ -1910,21 +1933,21 @@ function apriPagamento(id, pre) {
       <div><label class="f">Periodo</label><input class="in" id="gPeriodo" value="${esc(p.periodo)}" placeholder="Es. set-ott 2026"></div>
       <div><label class="f">Come si paga</label><select class="in" id="gMetodo"><option value="">—</option>${METODI.map(m => `<option ${m === p.metodo ? 'selected' : ''}>${m}</option>`).join('')}</select></div>
     </div>
-    <label class="f">Intestata a</label>
+    <label class="f">${altro ? 'Per chi' : 'Intestata a'}</label>
     <div class="pick" id="fPersona"><button type="button" class="${!p.personaId ? 'on' : ''}" data-id="" onclick="scegliUno(this)">🏠 Famiglia</button>${S.persone.map(x => `<button type="button" class="${x.id === p.personaId ? 'on' : ''}" data-id="${x.id}" onclick="scegliUno(this)">${esc(x.emoji || '🙂')} ${esc(x.nome)}</button>`).join('')}</div>
     <label class="f">Si ripete?</label>
     <select class="in" id="gRipeti">${RIPETI_PAG.map(r => `<option value="${r[0]}" ${r[0] === (p.ripeti || 'no') ? 'selected' : ''}>${r[1]}</option>`).join('')}</select>
     <p class="mini">🔁 Se si ripete, quando la segni pagata preparo già la prossima.</p>
     <label class="toggle" style="margin-top:6px"><input type="checkbox" id="gPagata" ${p.pagata === 'si' ? 'checked' : ''} onchange="$('#gDataBox').style.display=this.checked?'block':'none'"> ✅ È già pagata</label>
     <div id="gDataBox" style="display:${p.pagata === 'si' ? 'block' : 'none'}"><label class="f">Pagata il</label><input class="in" type="date" id="gDataPag" value="${esc(p.dataPagamento || oggi())}"></div>
-    <label class="f">Bolletta o ricevuta</label>
+    <label class="f">${altro ? 'Fattura, preventivo o ricevuta' : 'Bolletta o ricevuta'}</label>
     <div class="files" id="fFiles"></div>
     <div class="azioni" style="margin-top:8px">
       <button class="btn sec small" onclick="scegliFile('inFoto')">📷 Foto</button>
       <button class="btn sec small" onclick="scegliFile('inFile')">📎 PDF o foto</button>
     </div>
     <label class="f">Note</label>
-    <textarea class="in" id="gNote" placeholder="Codice cliente, numero bollettino…">${esc(p.note)}</textarea>
+    <textarea class="in" id="gNote" placeholder="${altro ? 'Che lavoro ha fatto, telefono, IBAN…' : 'Codice cliente, numero bollettino…'}">${esc(p.note)}</textarea>
     <div class="azioni">
       ${id ? `<button class="btn danger" onclick="eliminaPagamento('${id}')">🗑️ Elimina</button>` : ''}
       <button class="btn" id="gSalva" onclick="salvaPagamento()">💾 Salva</button>
@@ -2086,7 +2109,8 @@ function sceltaNuovo() {
     <div class="row" onclick="apriPagamento();scegliFile('inFoto')"><div class="ico" style="background:var(--warn-soft)">📷</div><div class="txt"><div class="t">Fotografa una bolletta</div><div class="s">Apro la fotocamera, poi completi importo e scadenza</div></div></div>
     <div class="row" onclick="apriImpegno(null, S.vista==='cal'?S.giornoSel:null)"><div class="ico" style="background:var(--accent-soft)">📌</div><div class="txt"><div class="t">Un impegno</div><div class="s">Visite, scuola, sport, feste…</div></div></div>
     <div class="row" onclick="vai('spesa');setTimeout(()=>$('#spNome')&&$('#spNome').focus(),50)"><div class="ico" style="background:var(--ok-soft)">🛒</div><div class="txt"><div class="t">Qualcosa da comprare</div><div class="s">Nella lista della spesa</div></div></div>
-    <div class="row" onclick="apriPagamento()"><div class="ico" style="background:var(--warn-soft)">💶</div><div class="txt"><div class="t">Una bolletta o un pagamento</div><div class="s">Luce, gas, TARI, mutuo, asilo…</div></div></div>
+    <div class="row" onclick="apriPagamento()"><div class="ico" style="background:var(--warn-soft)">💶</div><div class="txt"><div class="t">Una bolletta</div><div class="s">Luce, gas, TARI, mutuo, condominio…</div></div></div>
+    <div class="row" onclick="apriPagamento(null, { _altro: true })"><div class="ico" style="background:var(--warn-soft)">🔧</div><div class="txt"><div class="t">Un altro pagamento</div><div class="s">Elettricista, meccanico, dentista, regali…</div></div></div>
 
     <div class="row" onclick="apriPersona()"><div class="ico" style="background:var(--primary-soft)">👤</div><div class="txt"><div class="t">Una persona</div><div class="s">Qualcuno della famiglia</div></div></div>
     <div class="row" onclick="vai('importa')"><div class="ico" style="background:var(--accent-soft)">📥</div><div class="txt"><div class="t">Importa da cartella</div><div class="s">I dati preparati dalla chat di Claude</div></div></div>
